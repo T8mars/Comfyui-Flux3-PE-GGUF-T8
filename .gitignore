@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.cache/
+vendor/
+runtime/
+models/
+artifacts/
+logs/
+release/
+*.zip
+.env
+.env.*
+!.env.example
+*.partial

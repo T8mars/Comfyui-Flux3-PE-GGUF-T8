@@ -1,0 +1,18 @@
+FLUX 3 Prompt Enhancement GGUF
+
+The PUP model and system prompts are by Black Forest Labs, derived from
+Qwen3.5-9B, and distributed under Apache-2.0.
+Source model: black-forest-labs/flux-3-image-klein-pup
+Revision: 8b069751eb5dcab23829d9c5eccb470eb8b8a4ed
+
+flux3_pe/bbox.py is copied from Black Forest Labs' Apache-2.0 reference code:
+https://github.com/black-forest-labs/flux-3-image-klein
+Revision: 45e57c9fb06f9751cdced29a65c5d2171003be05
+Image preprocessing and request scaffolds follow that reference implementation.
+
+T8star provides GGUF conversion, ComfyUI integration, and modifications to
+layout validation, identity reconciliation, caching, and process cleanup.
+
+The separately distributed llama.cpp runtime is MIT licensed. Its generated-token-only
+penalty extension is recorded in patches/llama-generated-penalties.patch.
+The image-generation model is a separate artifact with its own license.

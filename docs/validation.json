@@ -1,0 +1,14 @@
+{
+  "version": "0.1.5",
+  "source_identity": "8673983ed7f22b83d3bd3ef26e5deea3776a8a1aae30e48c670e392c27165573",
+  "unit_tests": 428,
+  "functional_tasks": 40,
+  "functional_passed": 40,
+  "recovered_cases": [
+    "i2i_08"
+  ],
+  "real_canvas_runs": 7,
+  "saved_workflows": 4,
+  "png_restores_workflow": true,
+  "note": "Model/canvas validation uses the same unchanged PE core. The publication update additionally verifies Manager folder installation and documentation/metadata."
+}

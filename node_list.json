@@ -1,0 +1,4 @@
+{
+  "Flux3PELoader": "Load the validated FLUX 3 PUP GGUF model and its matching vision projector.",
+  "Flux3PromptEnhance": "Enhance text, reference-image editing instructions and layouts locally with FLUX 3 PUP."
+}

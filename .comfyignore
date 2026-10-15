@@ -1,0 +1,10 @@
+.github/
+docs/
+tests/
+patches/
+scripts/*
+!scripts/cli.py
+!scripts/install_comfy.ps1
+.pytest_cache/
+__pycache__/
+*.pyc

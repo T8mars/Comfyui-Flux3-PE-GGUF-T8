@@ -1,0 +1,82 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 12f4555..fea3bc3 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -316,3 +316,9 @@ configure_file(cmake/llama.pc.in
+ 
+ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/llama.pc"
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
++
++if (DEFINED FLUX3_PE_TEST_SOURCE)
++    add_executable(test-pe-sampling "${FLUX3_PE_TEST_SOURCE}")
++    target_link_libraries(test-pe-sampling PRIVATE llama-common)
++    target_compile_features(test-pe-sampling PRIVATE cxx_std_17)
++endif()
+diff --git a/common/common.h b/common/common.h
+index 2cd6e2e..e090753 100644
+--- a/common/common.h
++++ b/common/common.h
+@@ -243,6 +243,7 @@ struct common_params_sampling {
+     float   penalty_repeat     = 1.00f;  // 1.0 = disabled
+     float   penalty_freq       = 0.00f;  // 0.0 = disabled
+     float   penalty_present    = 0.00f;  // 0.0 = disabled
++    bool    penalties_generated_only = false;
+     float   dry_multiplier     = 0.0f;   // 0.0 = disabled;      DRY repetition penalty for tokens extending repetition:
+     float   dry_base           = 1.75f;  // 0.0 = disabled;      multiplier * base ^ (length of sequence before token - allowed length)
+     int32_t dry_allowed_length = 2;      // tokens extending repetitions beyond this receive penalty
+diff --git a/common/sampling.cpp b/common/sampling.cpp
+index 564fa9c..c572052 100644
+--- a/common/sampling.cpp
++++ b/common/sampling.cpp
+@@ -502,7 +502,16 @@ void common_sampler_accept(struct common_sampler * gsmpl, llama_token token, boo
+         llama_sampler_accept(gsmpl->grmr, token);
+     }
+ 
+-    llama_sampler_accept(gsmpl->chain, token);
++    if (!is_generated && gsmpl->params.penalties_generated_only) {
++        for (int i = 0; i < llama_sampler_chain_n(gsmpl->chain); ++i) {
++            auto * sampler = llama_sampler_chain_get(gsmpl->chain, i);
++            if (strcmp(llama_sampler_name(sampler), "penalties") != 0) {
++                llama_sampler_accept(sampler, token);
++            }
++        }
++    } else {
++        llama_sampler_accept(gsmpl->chain, token);
++    }
+ 
+     gsmpl->prev.push_back(token);
+ }
+diff --git a/tools/server/server-schema.cpp b/tools/server/server-schema.cpp
+index 54e126a..ccb703b 100644
+--- a/tools/server/server-schema.cpp
++++ b/tools/server/server-schema.cpp
+@@ -136,6 +136,9 @@ std::vector<std::unique_ptr<field>> make_llama_cmpl_schema(const common_params &
+     add((new field_num("presence_penalty", params.sampling.penalty_present))
+         ->set_desc("Repeat alpha presence penalty (0 = disabled)"));
+ 
++    add((new field_bool("penalties_generated_only", params.sampling.penalties_generated_only))
++        ->set_desc("Apply repetition penalties only to generated tokens"));
++
+     add((new field_num("dry_multiplier", params.sampling.dry_multiplier))
+         ->set_desc("Set the DRY (Don't Repeat Yourself) repetition penalty multiplier (0 = disabled)"));
+ 
+diff --git a/tools/server/server-task.cpp b/tools/server/server-task.cpp
+index 3f30da2..31dd201 100644
+--- a/tools/server/server-task.cpp
++++ b/tools/server/server-task.cpp
+@@ -55,6 +55,7 @@ json task_params::to_json(bool only_metrics) const {
+             {"repeat_last_n",             sampling.penalty_last_n},
+             {"repeat_penalty",            sampling.penalty_repeat},
+             {"presence_penalty",          sampling.penalty_present},
++            {"penalties_generated_only",  sampling.penalties_generated_only},
+             {"frequency_penalty",         sampling.penalty_freq},
+             {"dry_multiplier",            sampling.dry_multiplier},
+             {"dry_base",                  sampling.dry_base},
+@@ -107,6 +108,7 @@ json task_params::to_json(bool only_metrics) const {
+         {"repeat_last_n",             sampling.penalty_last_n},
+         {"repeat_penalty",            sampling.penalty_repeat},
+         {"presence_penalty",          sampling.penalty_present},
++        {"penalties_generated_only",  sampling.penalties_generated_only},
+         {"frequency_penalty",         sampling.penalty_freq},
+         {"dry_multiplier",            sampling.dry_multiplier},
+         {"dry_base",                  sampling.dry_base},

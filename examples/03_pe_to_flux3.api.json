@@ -1,0 +1,196 @@
+{
+  "1": {
+    "inputs": {
+      "model_name": "flux3-klein-pup-Q4_K_M.gguf",
+      "context_size": 8192
+    },
+    "class_type": "Flux3PELoader",
+    "_meta": {
+      "title": "FLUX 3 PE Model (GGUF)"
+    }
+  },
+  "2": {
+    "inputs": {
+      "prompt": "一辆红色自行车靠在白墙边，午后阳光，写实摄影。",
+      "keep_loaded": false,
+      "use_cache": false,
+      "max_tokens": 3584,
+      "canvas_width": 0,
+      "canvas_height": 0,
+      "boxes_json": "",
+      "retry_invalid_output": true,
+      "pe_model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "Flux3PromptEnhance",
+    "_meta": {
+      "title": "FLUX 3 Prompt Enhancement"
+    }
+  },
+  "3": {
+    "inputs": {
+      "source": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "增强后的提示词"
+    }
+  },
+  "4": {
+    "inputs": {
+      "source": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "PE 运行详情（缓存 / 恢复 / 耗时）"
+    }
+  },
+  "10": {
+    "inputs": {
+      "unet_name": "flux3_image_klein_sd_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器"
+    }
+  },
+  "11": {
+    "inputs": {
+      "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
+      "type": "flux3",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "加载CLIP"
+    }
+  },
+  "12": {
+    "inputs": {
+      "text": [
+        "2",
+        0
+      ],
+      "clip": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "13": {
+    "inputs": {
+      "conditioning": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "FluxDisableGuidance",
+    "_meta": {
+      "title": "Flux禁用指导"
+    }
+  },
+  "14": {
+    "inputs": {
+      "conditioning": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "条件零化"
+    }
+  },
+  "15": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "空Latent图像（Flux2）"
+    }
+  },
+  "16": {
+    "inputs": {
+      "seed": 7,
+      "steps": 16,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "10",
+        0
+      ],
+      "positive": [
+        "13",
+        0
+      ],
+      "negative": [
+        "14",
+        0
+      ],
+      "latent_image": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "17": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "18": {
+    "inputs": {
+      "samples": [
+        "16",
+        0
+      ],
+      "vae": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "19": {
+    "inputs": {
+      "filename_prefix": "FLUX3_PE_Q4_smoke",
+      "images": [
+        "18",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  }
+}
