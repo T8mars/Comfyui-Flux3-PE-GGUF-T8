@@ -2,6 +2,12 @@
 
 The production backend uses the official PUP revision `8b069751eb5dcab23829d9c5eccb470eb8b8a4ed`, converted with llama.cpp commit `620d2225cc436ab0b001e3200e590e3b286ef9ab`. Model checksums and tensor metadata are published with the [GGUF artifacts](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/tree/main).
 
+## Backend integration
+
+The node currently starts an owned `llama-server` process. Its supplied and validated prebuilt runtime targets Windows x64 / NVIDIA CUDA 13.4. GGUF weights are platform-independent, and upstream [llama.cpp binaries](https://github.com/ggml-org/llama.cpp/releases) and [llama-cpp-python wheels](https://github.com/abetlen/llama-cpp-python#installation) offer other deployment options.
+
+Those upstream packages are not currently drop-in replacements for this node's runtime. `ModelSpec.load` requires a matching `flux3-pe-runtime.json`, verifies the executable and patched Windows DLLs, and startup checks for the `penalties_generated_only` sampling extension. A Python-wheel backend would also need compatible PUP/Qwen3.5 multimodal inference and equivalent sampling behavior. Direct Python-wheel and Linux/macOS integration have not yet been implemented or validated.
+
 ## Test
 
 Use Python 3.10+ with PyTorch, NumPy, pytest and the project requirements. Windows installer tests additionally require PowerShell 7. Run from the repository root:

@@ -15,7 +15,7 @@
 
 ## 安装
 
-需要 **Windows x64、NVIDIA 显卡、支持 CUDA 13.4 的驱动**，以及具备 V3 节点 API 的近期 ComfyUI。提供的运行库已包含 PE 专用采样扩展。
+**当前提供并实测的预编译运行包**适用于 **Windows x64 / NVIDIA CUDA 13.4**，需要兼容的 NVIDIA 驱动，以及具备 V3 节点 API 的近期 ComfyUI。GGUF 模型文件本身可跨平台使用；这里的 Windows 要求指当前节点运行库。
 
 1. Registry 版本可用后，可在 ComfyUI 节点管理器搜索 **FLUX 3 PE GGUF (T8)**；也可进入 `ComfyUI/custom_nodes` 手动安装：
 
@@ -35,6 +35,14 @@
 4. 从 [Releases](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases) 下载 `flux3-pe-runtime-win-x64-cuda13.4.zip`，解压到节点目录后重启 ComfyUI。运行程序应位于 `runtime/bin/llama-server.exe`。
 
 模型文件不随 Git 或 Registry 节点包分发。增强过程在本机运行，节点执行不会上传提示词或参考图。
+
+### llama.cpp 与 Python 轮子
+
+- [llama.cpp 官方预编译包](https://github.com/ggml-org/llama.cpp/releases)：包含 `llama-server` 等独立程序，Windows 下程序名为 `llama-server.exe`。
+- [llama-cpp-python GitHub 发布页](https://github.com/abetlen/llama-cpp-python/releases)及[安装说明](https://github.com/abetlen/llama-cpp-python#installation)：通过 Python 调用 llama.cpp，可在不启动独立服务程序的情况下推理。
+- 官方轮子文件：[CPU](https://abetlen.github.io/llama-cpp-python/whl/cpu/llama-cpp-python/) · [CUDA 12.4](https://abetlen.github.io/llama-cpp-python/whl/cu124/llama-cpp-python/) · [CUDA 13.2](https://abetlen.github.io/llama-cpp-python/whl/cu132/llama-cpp-python/)。请匹配 Python 版本、操作系统、架构及 CUDA 要求；其他构建见官方安装说明。
+
+**当前接入状态：**本节点启动独立的 llama.cpp 服务，并校验配套运行库清单。该运行库包含“仅对生成 token 施加惩罚”的 PE 采样扩展。上游通用程序包及 Python 轮子暂不能直接替换本节点的配套运行库；直接使用 Python 轮子的后端，以及 Linux/macOS 接入尚未实现或测试。
 
 ## 使用
 

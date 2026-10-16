@@ -15,7 +15,7 @@ Local prompt enhancement for ComfyUI, powered by Black Forest Labs' **FLUX 3 Ima
 
 ## Installation
 
-Requires **Windows x64**, an **NVIDIA GPU**, a driver supporting **CUDA 13.4**, and a recent ComfyUI with the V3 node API. The distributed runtime includes the PE sampling extension.
+The **prebuilt runtime currently supplied and tested with this node** targets **Windows x64 / NVIDIA CUDA 13.4**. It requires a compatible NVIDIA driver and a recent ComfyUI with the V3 node API. GGUF model files are platform-independent; this Windows requirement describes the current node runtime.
 
 1. Install **FLUX 3 PE GGUF (T8)** through ComfyUI Manager when the Registry version is available, or clone into `ComfyUI/custom_nodes`:
 
@@ -35,6 +35,14 @@ Requires **Windows x64**, an **NVIDIA GPU**, a driver supporting **CUDA 13.4**, 
 4. Download `flux3-pe-runtime-win-x64-cuda13.4.zip` from [Releases](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases), extract it into the node folder, and restart ComfyUI. The executable should be at `runtime/bin/llama-server.exe`.
 
 Model files stay outside Git and the Registry package. Enhancement runs locally; node execution does not upload prompts or reference images.
+
+### llama.cpp and Python wheels
+
+- [llama.cpp official binaries](https://github.com/ggml-org/llama.cpp/releases): standalone programs, including `llama-server` (`llama-server.exe` on Windows).
+- [llama-cpp-python GitHub releases](https://github.com/abetlen/llama-cpp-python/releases) and [installation guide](https://github.com/abetlen/llama-cpp-python#installation): Python bindings that can run inference without a separate server executable.
+- Official wheel files: [CPU](https://abetlen.github.io/llama-cpp-python/whl/cpu/llama-cpp-python/) · [CUDA 12.4](https://abetlen.github.io/llama-cpp-python/whl/cu124/llama-cpp-python/) · [CUDA 13.2](https://abetlen.github.io/llama-cpp-python/whl/cu132/llama-cpp-python/). Select a wheel matching your Python version, OS, architecture and CUDA requirements; see the installation guide for other builds.
+
+**Current integration:** this node starts a separate, patched llama.cpp server and verifies its runtime manifest. The PE sampling extension applies penalties only to generated tokens. Stock upstream binaries and Python wheels are not drop-in replacements for that runtime. A direct Python-wheel backend and Linux/macOS integration have not yet been implemented or tested.
 
 ## Usage
 
