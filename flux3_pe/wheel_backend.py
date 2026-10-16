@@ -9,22 +9,72 @@ import json
 import os
 from pathlib import Path
 import re
+import sys
 import time
 
 from .protocol import PEError
 
 MIN_WHEEL_VERSION = (0, 3, 36)
+_windows_libraries = {}
+
+
+def installed_wheel():
+    try:
+        package = metadata.distribution("llama-cpp-python")
+    except metadata.PackageNotFoundError as error:
+        raise PEError("Install llama-cpp-python>=0.3.36,<0.4 into ComfyUI's Python; see README wheel downloads") from error
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:[.+-].*)?", package.version)
+    if match is None or tuple(map(int, match.groups())) < MIN_WHEEL_VERSION:
+        raise PEError(f"llama-cpp-python {package.version} is too old; install >=0.3.36,<0.4 with MTMD and Qwen3.5 support")
+    if tuple(map(int, match.groups())) >= (0, 4, 0):
+        raise PEError(f"llama-cpp-python {package.version} is outside the supported range >=0.3.36,<0.4")
+    return package
+
+
+def prepare_windows_libraries(package):
+    """Load wheel dependencies using Windows' secure default search flags."""
+    if sys.platform != "win32":
+        return
+    root = Path(os.environ.get("LLAMA_CPP_LIB_PATH") or package.locate_file("llama_cpp/lib")).resolve()
+    if str(root) in _windows_libraries:
+        return
+    directories = [root, Path(getattr(sys, "_base_executable", sys.executable)).resolve().parent]
+    cuda = os.environ.get("CUDA_PATH")
+    if cuda:
+        directories.extend([Path(cuda) / "bin", Path(cuda) / "lib", Path(cuda) / "bin/x64", Path(cuda) / "bin/x86_64"])
+    handles = [os.add_dll_directory(str(path)) for path in dict.fromkeys(directories) if path.is_dir()]
+    libraries = []
+    try:
+        for name in ("ggml-base.dll", "ggml-cpu.dll", "ggml-cuda.dll", "ggml-vulkan.dll", "ggml.dll", "llama.dll", "mtmd.dll"):
+            path = root / name
+            if path.is_file():
+                # Do not pass the POSIX RTLD_GLOBAL value as a Windows
+                # LoadLibrary flag: it omits required dependency search paths.
+                libraries.append(ctypes.CDLL(str(path)))
+    except BaseException:
+        for handle in handles:
+            handle.close()
+        raise
+    _windows_libraries[str(root)] = (handles, libraries)
+
+
+def load_wheel():
+    package = installed_wheel()
+    loaded = sys.modules.get("llama_cpp")
+    if loaded is not None and getattr(loaded, "__version__", None) != package.version:
+        raise PEError("Another llama-cpp-python version is already imported; restart ComfyUI after updating its wheel")
+    try:
+        prepare_windows_libraries(package)
+        import llama_cpp
+        from llama_cpp import mtmd_cpp
+    except (ImportError, OSError, RuntimeError, AttributeError) as error:
+        raise PEError(f"Cannot load llama-cpp-python: {error}. Install a compatible wheel and its CUDA/OS runtime dependencies; see README") from error
+    return llama_cpp, mtmd_cpp
 
 
 def wheel_identity() -> str:
     """Inspect the installed distribution without importing its native libraries."""
-    try:
-        package = metadata.distribution("llama-cpp-python")
-    except metadata.PackageNotFoundError as error:
-        raise PEError("Install llama-cpp-python>=0.3.36 into ComfyUI's Python; see README wheel downloads") from error
-    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:[.+-].*)?", package.version)
-    if match is None or tuple(map(int, match.groups())) < MIN_WHEEL_VERSION:
-        raise PEError(f"llama-cpp-python {package.version} is too old; install >=0.3.36 with MTMD and Qwen3.5 support")
+    package = installed_wheel()
     root = Path(package.locate_file("llama_cpp")).resolve()
     bound = []
     for path in sorted(root.rglob("*")):
@@ -125,13 +175,9 @@ class WheelEngine:
         if self.llm is not None:
             return
         wheel_identity()
-        try:
-            import llama_cpp
-            from llama_cpp import mtmd_cpp
-            from llama_cpp._logger import llama_log_callback
-            from llama_cpp.llama_chat_format import MTMDChatHandler
-        except (ImportError, OSError, RuntimeError, AttributeError) as error:
-            raise PEError(f"Cannot load llama-cpp-python: {error}. Install a compatible wheel and its CUDA/OS runtime dependencies; see README") from error
+        llama_cpp, mtmd_cpp = load_wheel()
+        from llama_cpp._logger import llama_log_callback
+        from llama_cpp.llama_chat_format import MTMDChatHandler
         self.api, self.mtmd = llama_cpp, mtmd_cpp
         self.version = llama_cpp.__version__
         installed = metadata.version("llama-cpp-python")
@@ -241,6 +287,17 @@ class WheelEngine:
             self._deadline = float("inf")
 
     def close(self):
+        # MTMD's helper registers its cleanup callback only after the vision
+        # support check. An initialization failure can leave an unregistered
+        # projector context. Free it before its model; the registered callback
+        # checks for None, so both initialization paths have one owner.
+        if self.handler is not None and getattr(self.handler, "mtmd_ctx", None):
+            try:
+                self.mtmd.mtmd_free(self.handler.mtmd_ctx)
+                self.handler.mtmd_ctx = None
+            except BaseException:
+                self._cleanup_failed = True
+                raise
         if self.llm is not None:
             try:
                 self.llm.close()

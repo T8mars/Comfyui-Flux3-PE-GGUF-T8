@@ -8,13 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from flux3_pe.protocol import prepare_request
-from flux3_pe.wheel_backend import generated_sampler, token_piece, wheel_identity
+from flux3_pe.wheel_backend import generated_sampler, load_wheel, wheel_identity
 
 
 def main():
     wheel_identity()
-    import llama_cpp as api
-    from llama_cpp import mtmd_cpp
+    api, mtmd_cpp = load_wheel()
 
     assert callable(mtmd_cpp.mtmd_helper_eval_chunk_single)
     sampler = generated_sampler(type("Vocabulary", (), {"n_vocab": lambda self: 3})(), prepare_request("A ball.").payload())

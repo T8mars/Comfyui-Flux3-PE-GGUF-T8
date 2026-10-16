@@ -144,7 +144,7 @@ def native_engine(monkeypatch):
         mtmd_input_chunks_init=lambda: 1, mtmd_bitmap_p_ctypes=ctypes.c_void_p,
         mtmd_tokenize=lambda *args: 0, mtmd_helper_get_n_tokens=lambda _: 10,
         mtmd_input_chunks_size=lambda _: 2, mtmd_input_chunks_get=lambda _, index: index,
-        mtmd_helper_eval_chunk_single=evaluate, mtmd_input_chunks_free=lambda _: effects.append("free_chunks"), mtmd_bitmap_free=lambda _: effects.append("free_bitmap"))
+        mtmd_helper_eval_chunk_single=evaluate, mtmd_input_chunks_free=lambda _: effects.append("free_chunks"), mtmd_bitmap_free=lambda _: effects.append("free_bitmap"), mtmd_free=lambda _: effects.append("free_projector"))
     # The text structure is a real ctypes value as required by byref().
     class Text(ctypes.Structure):
         _fields_ = [("text", ctypes.c_char_p), ("text_len", ctypes.c_size_t), ("add_special", ctypes.c_bool), ("parse_special", ctypes.c_bool)]
@@ -192,6 +192,67 @@ def test_failed_native_close_preserves_handle_for_retry(native_engine):
     llm.close = lambda: effects.append("retry_close")
     backend.close()
     assert backend.llm is None and not backend._cleanup_failed
+
+
+def test_unregistered_projector_is_freed_before_its_model(native_engine):
+    backend, effects, _ = native_engine
+    backend.close()
+    assert effects == ["free_projector", "close_model"]
+    assert backend.handler is None and backend.llm is None
+    backend.close()
+    assert effects == ["free_projector", "close_model"]
+
+
+def test_failed_projector_cleanup_retains_both_handles_until_retry(native_engine):
+    backend, effects, _ = native_engine
+    llm, handler = backend.llm, backend.handler
+    backend.mtmd.mtmd_free = lambda _: (_ for _ in ()).throw(RuntimeError("projector cleanup failed"))
+    with pytest.raises(RuntimeError, match="projector cleanup"):
+        backend.close()
+    assert backend.llm is llm and backend.handler is handler and backend._cleanup_failed
+    assert "close_model" not in effects
+    backend.mtmd.mtmd_free = lambda _: effects.append("retry_projector")
+    backend.close()
+    assert effects == ["retry_projector", "close_model"]
+
+
+@pytest.mark.parametrize("version", ["0.4.0", "1.0.0"])
+def test_future_unsupported_wheel_is_rejected_before_native_import(monkeypatch, version):
+    monkeypatch.setattr(wheel.metadata, "distribution", lambda _: SimpleNamespace(version=version))
+    with pytest.raises(PEError, match="outside the supported range"):
+        wheel.wheel_identity()
+
+
+def test_windows_dependency_loading_uses_wheel_files_and_retains_search_handles(tmp_path, monkeypatch):
+    root = tmp_path / "llama_cpp/lib"
+    root.mkdir(parents=True)
+    cuda = tmp_path / "cuda"
+    (cuda / "bin").mkdir(parents=True)
+    names = ("ggml-base.dll", "ggml-cpu.dll", "ggml-cuda.dll", "ggml.dll", "llama.dll", "mtmd.dll")
+    for name in names:
+        (root / name).write_bytes(b"fixture")
+    calls, directories = [], []
+    monkeypatch.setattr(wheel.sys, "platform", "win32")
+    monkeypatch.delenv("LLAMA_CPP_LIB_PATH", raising=False)
+    monkeypatch.setenv("CUDA_PATH", str(cuda))
+    monkeypatch.setattr(wheel.os, "add_dll_directory", lambda path: directories.append(path) or object(), raising=False)
+    monkeypatch.setattr(wheel.ctypes, "CDLL", lambda path: calls.append(path) or object())
+    monkeypatch.setattr(wheel, "_windows_libraries", {})
+    package = SimpleNamespace(locate_file=lambda path: tmp_path / path)
+    wheel.prepare_windows_libraries(package)
+    assert [Path(path).name for path in calls] == list(names)
+    assert str(cuda / "bin") in directories
+    assert len(wheel._windows_libraries[str(root)][1]) == len(names)
+    wheel.prepare_windows_libraries(package)
+    assert len(calls) == len(names)
+
+
+def test_existing_old_import_fails_before_loading_a_second_native_abi(monkeypatch):
+    monkeypatch.setattr(wheel, "installed_wheel", lambda: SimpleNamespace(version="0.3.36"))
+    monkeypatch.setitem(sys.modules, "llama_cpp", SimpleNamespace(__version__="0.2.89"))
+    monkeypatch.setattr(wheel, "prepare_windows_libraries", lambda _: (_ for _ in ()).throw(AssertionError("loaded incompatible native libraries")))
+    with pytest.raises(PEError, match="restart ComfyUI"):
+        wheel.load_wheel()
 
 
 def test_cached_wheel_model_avoids_repeated_comfy_unload_and_releases(monkeypatch):

@@ -47,3 +47,27 @@ jobs:
         run: python -m pip install --only-binary=llama-cpp-python llama-cpp-python==0.3.36 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -r requirements.txt
       - name: Verify native sampling and multimodal interfaces
         run: python scripts/wheel_native_check.py
+
+  linux-model:
+    name: Real PUP inference (Linux CPU)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install the official CPU wheel
+        run: python -m pip install --only-binary=llama-cpp-python llama-cpp-python==0.3.36 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -r requirements.txt
+      - name: Download and verify pinned production weights
+        run: python scripts/download_gguf.py
+      - name: Run real text, Chinese text, layout and reference tasks
+        run: python scripts/evaluate.py --backend llama-cpp-python --models Q4_K_M --gpu-layers 0 --ids t2i_01 t2i_04 i2i_06 i2i_10 t2i_bbox_04 i2i_bbox_07 --output artifacts/linux-model-evaluation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-real-model-results
+          path: artifacts/linux-model-evaluation.json
