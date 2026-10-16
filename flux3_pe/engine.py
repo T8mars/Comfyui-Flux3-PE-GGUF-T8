@@ -41,15 +41,20 @@ def runtime_checksum(path: Path, size: int, modified_ns: int) -> str:
 class ModelSpec:
     model: Path
     mmproj: Path
-    server: Path
+    server: Path | None
     revision: str
     context: int = 8192
     gpu_layers: str = "all"
+    backend: str = "llama-server"
 
     @classmethod
-    def load(cls, model: str | Path, server: str | Path | None = None, context: int = 8192, gpu_layers: str = "all"):
+    def load(cls, model: str | Path, server: str | Path | None = None, context: int = 8192, gpu_layers: str = "all", backend: str = "auto"):
         if isinstance(context, bool) or not isinstance(context, int) or context < 4096:
             raise ValueError("PUP context must be an integer of at least 4096 tokens")
+        if backend not in ("auto", "llama-cpp-python", "llama-server"):
+            raise ValueError("backend must be auto, llama-cpp-python or llama-server")
+        if backend == "llama-cpp-python" and server is not None:
+            raise ValueError("server cannot be specified with the llama-cpp-python backend")
         model = Path(model).resolve()
         manifest_path = model.parent / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -66,6 +71,16 @@ class ModelSpec:
         for path, metadata in ((model, entry), (mmproj, manifest["mmproj"])):
             if not path.is_file() or path.stat().st_size != metadata["bytes"]:
                 raise PEError(f"Model artifact is missing or incomplete: {path}")
+        if backend != "llama-server" and server is None and not (backend == "auto" and os.environ.get("FLUX3_PE_LLAMA_SERVER")):
+            from .wheel_backend import wheel_identity
+            try:
+                identity = wheel_identity()
+            except PEError:
+                if backend == "llama-cpp-python" or not (ROOT / "runtime/bin/llama-server.exe").is_file():
+                    raise
+            else:
+                revision = hashlib.sha256(json.dumps([entry["sha256"], model.stat().st_mtime_ns, manifest["mmproj"]["sha256"], mmproj.stat().st_mtime_ns, "llama-cpp-python", identity], sort_keys=True).encode()).hexdigest()
+                return cls(model, mmproj, None, revision, context, gpu_layers, "llama-cpp-python")
         server = Path(server or os.environ.get("FLUX3_PE_LLAMA_SERVER", ROOT / "runtime/bin/llama-server.exe")).resolve()
         runtime_manifest = json.loads((server.parent / "flux3-pe-runtime.json").read_text(encoding="utf-8"))
         if runtime_manifest.get("penalties_generated_only") is not True:
@@ -251,7 +266,7 @@ def _close_engine():
         try:
             current.close()
         finally:
-            if getattr(current, "process", None) is None:
+            if getattr(current, "process", None) is None and not getattr(current, "_cleanup_failed", False):
                 _engine = None
 
 
@@ -289,10 +304,14 @@ def enhance(spec: ModelSpec, prompt: str, images=None, boxes=None, canvas=None, 
         if _engine is not None and _engine.spec != spec:
             _close_engine()
         if _engine is None:
-            _engine = LlamaEngine(spec)
+            if spec.backend == "llama-cpp-python":
+                from .wheel_backend import WheelEngine
+                _engine = WheelEngine(spec)
+            else:
+                _engine = LlamaEngine(spec)
         started = time.monotonic()
         process = getattr(_engine, "process", None)
-        if before_load is not None and (process is None or process.poll() is not None):
+        if before_load is not None and not getattr(_engine, "is_loaded", False) and (process is None or process.poll() is not None):
             before_load()
         _engine.start(interrupt)
         loaded = time.monotonic()
@@ -316,6 +335,7 @@ def enhance(spec: ModelSpec, prompt: str, images=None, boxes=None, canvas=None, 
             "plugin_version": __version__, "source_identity": SOURCE_IDENTITY,
             "source_revision": SOURCE_REVISION, "model": spec.model.name, "model_revision": spec.revision,
             "gpu_layers": spec.gpu_layers, "context_size": spec.context,
+            "backend": spec.backend, "wheel_version": getattr(_engine, "version", None),
             "load_seconds": round(loaded - started, 4), "generation_seconds": round(time.monotonic() - loaded, 4),
             "usage": response.get("usage", {}), "timings": response.get("timings", {}), "cache_hit": False,
             "penalties_generated_only": True,

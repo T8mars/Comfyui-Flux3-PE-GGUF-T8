@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 
 const root = path.resolve(__dirname, '..');
-const evidence = path.join(root, 'artifacts', 'canvas-qa');
+const evidence = process.env.FLUX3_PE_CANVAS_EVIDENCE || path.join(root, 'artifacts', 'canvas-qa');
 fs.mkdirSync(evidence, { recursive: true });
 const mode = process.argv[2] || 'inspect';
 const baseURL = process.env.COMFY_URL || 'http://127.0.0.1:8267';
@@ -13,7 +13,7 @@ const names = ['01_prompt_enhancement', '02_layout_enhancement', '03_pe_to_flux3
 const cleanPrompt = prompt => Object.fromEntries(Object.entries(prompt).map(([id, node]) => [id, { class_type: node.class_type, inputs: node.inputs }]));
 const version = fs.readFileSync(path.join(root, 'flux3_pe/__init__.py'), 'utf8').match(/__version__\s*=\s*"([^"]+)"/)[1];
 // Keep the runtime identity contract identical to flux3_pe/identity.py.
-const coreFiles = ['__init__.py', 'nodes.py', 'flux3_pe/__init__.py', 'flux3_pe/engine.py', 'flux3_pe/protocol.py', 'flux3_pe/bbox.py', 'flux3_pe/identity.py', 'flux3_pe/resources/system_prompts.json'];
+const coreFiles = ['__init__.py', 'nodes.py', 'flux3_pe/__init__.py', 'flux3_pe/engine.py', 'flux3_pe/protocol.py', 'flux3_pe/bbox.py', 'flux3_pe/identity.py', 'flux3_pe/resources/system_prompts.json', 'flux3_pe/wheel_backend.py'];
 const identityHash = crypto.createHash('sha256');
 for (const name of coreFiles.sort()) identityHash.update(name).update('\0').update(fs.readFileSync(path.join(root, name))).update('\0');
 const sourceIdentity = identityHash.digest('hex');
@@ -97,6 +97,7 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
           const details = JSON.parse(entry.outputs['4'].text[0]);
           assert.equal(details.plugin_version, version, 'The ComfyUI backend is running a different plugin version');
           assert.equal(details.source_identity, sourceIdentity, 'The ComfyUI backend is running stale Python code');
+          if (process.env.FLUX3_PE_EXPECT_BACKEND) assert.equal(details.backend, process.env.FLUX3_PE_EXPECT_BACKEND, 'The workflow used a different backend');
           if (name.startsWith('04')) {
             assert.equal(details.mode, 'i2i');
             assert.equal(details.reference_sizes.length, 2);

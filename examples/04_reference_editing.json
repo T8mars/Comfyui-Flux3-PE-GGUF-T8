@@ -13,7 +13,7 @@
       ],
       "size": [
         340,
-        130
+        150
       ],
       "flags": {},
       "order": 0,
@@ -36,6 +36,16 @@
             "name": "context_size"
           },
           "link": null
+        },
+        {
+          "localized_name": "backend",
+          "name": "backend",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "backend"
+          },
+          "link": null
         }
       ],
       "outputs": [
@@ -53,11 +63,13 @@
       },
       "widgets_values": [
         "flux3-klein-pup-Q4_K_M.gguf",
-        8192
+        8192,
+        "auto"
       ],
       "widgets_values_named": {
         "model_name": "flux3-klein-pup-Q4_K_M.gguf",
-        "context_size": 8192
+        "context_size": 8192,
+        "backend": "auto"
       }
     },
     {

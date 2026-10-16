@@ -15,4 +15,6 @@ layout validation, identity reconciliation, caching, and process cleanup.
 
 The separately distributed llama.cpp runtime is MIT licensed. Its generated-token-only
 penalty extension is recorded in patches/llama-generated-penalties.patch.
+The optional Python backend uses the separately installed MIT-licensed
+llama-cpp-python package: https://github.com/abetlen/llama-cpp-python
 The image-generation model is a separate artifact with its own license.

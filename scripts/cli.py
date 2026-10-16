@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--image", type=Path, action="append", default=[])
     parser.add_argument("--boxes", type=Path)
     parser.add_argument("--context", type=int, default=8192)
+    parser.add_argument("--backend", choices=["auto", "llama-cpp-python", "llama-server"], default="auto")
     parser.add_argument("--max-tokens", type=int, default=3584)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--strict", action="store_true", help="Use only the original decoding policy; disable recovery")
@@ -53,7 +54,8 @@ def main():
         with Image.open(path) as image:
             images.append(image.copy())
     boxes = args.boxes.read_text(encoding="utf-8") if args.boxes else None
-    spec = ModelSpec.load(args.model, context=args.context)
+    options = {} if args.backend == "auto" else {"backend": args.backend}
+    spec = ModelSpec.load(args.model, context=args.context, **options)
     inputs.append(Path(getattr(spec, "model", args.model)).parent / "manifest.json")
     for name in ("mmproj", "server"):
         path = getattr(spec, name, None)

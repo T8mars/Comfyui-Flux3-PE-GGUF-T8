@@ -7,6 +7,7 @@ CORE_FILES = (
     "__init__.py", "nodes.py", "flux3_pe/__init__.py", "flux3_pe/engine.py",
     "flux3_pe/protocol.py", "flux3_pe/bbox.py", "flux3_pe/identity.py",
     "flux3_pe/resources/system_prompts.json",
+    "flux3_pe/wheel_backend.py",
 )
 
 

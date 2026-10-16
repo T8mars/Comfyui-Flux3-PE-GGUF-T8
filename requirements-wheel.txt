@@ -1,0 +1,2 @@
+-r requirements.txt
+llama-cpp-python>=0.3.36,<0.4

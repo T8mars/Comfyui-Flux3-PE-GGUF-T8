@@ -28,19 +28,22 @@ class Flux3PELoader(io.ComfyNode):
             inputs=[
                 io.Combo.Input("model_name", options=names),
                 io.Int.Input("context_size", default=8192, min=4096, max=32768, step=1024, advanced=True),
+                io.Combo.Input("backend", options=["auto", "llama-cpp-python", "llama-server"], default="auto", optional=True, tooltip="Auto prefers a compatible installed Python wheel. Python inference does not require llama-server.exe."),
             ],
             outputs=[MODEL_TYPE.Output(display_name="pe_model")],
         )
 
     @classmethod
-    def execute(cls, model_name, context_size=8192):
+    def execute(cls, model_name, context_size=8192, backend="auto"):
         path = folder_paths.get_full_path_or_raise("flux3_pe", model_name)
-        return io.NodeOutput(ModelSpec.load(path, context=context_size))
+        options = {} if backend == "auto" else {"backend": backend}
+        return io.NodeOutput(ModelSpec.load(path, context=context_size, **options))
 
     @classmethod
-    def fingerprint_inputs(cls, model_name, context_size=8192):
+    def fingerprint_inputs(cls, model_name, context_size=8192, backend="auto"):
         path = folder_paths.get_full_path_or_raise("flux3_pe", model_name)
-        return ModelSpec.load(path, context=context_size).revision
+        options = {} if backend == "auto" else {"backend": backend}
+        return ModelSpec.load(path, context=context_size, **options).revision
 
 
 class Flux3PromptEnhance(io.ComfyNode):

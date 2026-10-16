@@ -1,13 +1,16 @@
 [project]
 name = "flux3-pe-gguf-t8"
-version = "0.1.5"
+version = "0.2.0"
 description = "Local multimodal FLUX 3 prompt enhancement with Q4 GGUF"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 authors = [{name = "T8star"}]
-classifiers = ["Operating System :: Microsoft :: Windows", "Environment :: GPU :: NVIDIA CUDA"]
+classifiers = ["Operating System :: OS Independent", "Environment :: GPU :: NVIDIA CUDA"]
 dependencies = ["requests>=2.31,<3", "Pillow>=10"]
+
+[project.optional-dependencies]
+wheel = ["llama-cpp-python>=0.3.36,<0.4"]
 
 [project.urls]
 Repository = "https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8"

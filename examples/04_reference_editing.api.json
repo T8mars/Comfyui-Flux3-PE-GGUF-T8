@@ -2,7 +2,8 @@
   "1": {
     "inputs": {
       "model_name": "flux3-klein-pup-Q4_K_M.gguf",
-      "context_size": 8192
+      "context_size": 8192,
+      "backend": "auto"
     },
     "class_type": "Flux3PELoader",
     "_meta": {

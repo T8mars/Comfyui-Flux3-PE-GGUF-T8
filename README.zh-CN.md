@@ -11,11 +11,12 @@
 - 支持纯文本增强、参考图编辑指令，以及两种布局增强模式。
 - 最多 **10 张参考图**，支持明确的图片顺序与对象框锁定。
 - 输出可连接文本编码器的 `STRING`，支持结果缓存和最多一次恢复。
+- 直接调用已安装的 **llama-cpp-python 轮子**，支持参考图；此后端无需独立服务程序。
 - `keep_loaded=false` 时，在后续出图前释放 PE 显存。
 
 ## 安装
 
-**当前提供并实测的预编译运行包**适用于 **Windows x64 / NVIDIA CUDA 13.4**，需要兼容的 NVIDIA 驱动，以及具备 V3 节点 API 的近期 ComfyUI。GGUF 模型文件本身可跨平台使用；这里的 Windows 要求指当前节点运行库。
+需要 Python 3.10+ 和具备 V3 节点 API 的近期 ComfyUI。Python 轮子后端使用已安装的轮子及其对应平台依赖；可选的预编译服务运行包适用于 Windows x64 / NVIDIA CUDA 13.4。
 
 1. Registry 版本可用后，可在 ComfyUI 节点管理器搜索 **FLUX 3 PE GGUF (T8)**；也可进入 `ComfyUI/custom_nodes` 手动安装：
 
@@ -32,7 +33,15 @@
    | `mmproj-flux3-klein-pup-F16.gguf` | 0.92 GB |
    | `manifest.json` | 少量元数据 |
 
-4. 从 [Releases](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases) 下载 `flux3-pe-runtime-win-x64-cuda13.4.zip`，解压到节点目录后重启 ComfyUI。运行程序应位于 `runtime/bin/llama-server.exe`。
+4. 在**运行 ComfyUI 的同一个 Python** 中安装兼容的 **llama-cpp-python >=0.3.36、<0.4** 轮子，然后重启 ComfyUI；已有兼容版本可直接复用。以已具备 CUDA 13.2 运行库和兼容驱动的环境为例：
+
+   ```bash
+   python -m pip install --upgrade --only-binary=llama-cpp-python llama-cpp-python==0.3.36 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu132
+   ```
+
+   请从下方选择匹配本机环境的轮子；CPU 轮子无需 CUDA，GPU 轮子需要兼容的 CUDA 库和驱动。
+
+   如需使用原有**服务后端**，从 [v0.1.5 运行库下载页](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases/tag/v0.1.5) 下载 `flux3-pe-runtime-win-x64-cuda13.4.zip`，解压到节点目录，选择 `llama-server`。其程序应位于 `runtime/bin/llama-server.exe`。
 
 模型文件不随 Git 或 Registry 节点包分发。增强过程在本机运行，节点执行不会上传提示词或参考图。
 
@@ -42,11 +51,11 @@
 - [llama-cpp-python GitHub 发布页](https://github.com/abetlen/llama-cpp-python/releases)及[安装说明](https://github.com/abetlen/llama-cpp-python#installation)：通过 Python 调用 llama.cpp，可在不启动独立服务程序的情况下推理。
 - 官方轮子文件：[CPU](https://abetlen.github.io/llama-cpp-python/whl/cpu/llama-cpp-python/) · [CUDA 12.4](https://abetlen.github.io/llama-cpp-python/whl/cu124/llama-cpp-python/) · [CUDA 13.2](https://abetlen.github.io/llama-cpp-python/whl/cu132/llama-cpp-python/)。请匹配 Python 版本、操作系统、架构及 CUDA 要求；其他构建见官方安装说明。
 
-**当前接入状态：**本节点启动独立的 llama.cpp 服务，并校验配套运行库清单。该运行库包含“仅对生成 token 施加惩罚”的 PE 采样扩展。上游通用程序包及 Python 轮子暂不能直接替换本节点的配套运行库；直接使用 Python 轮子的后端，以及 Linux/macOS 接入尚未实现或测试。
+**后端选择：**`auto` 优先使用已安装的兼容 Python 轮子，没有兼容轮子时尝试配套服务运行库。选择 `llama-cpp-python` 可强制在 Python 内推理；`llama-server` 使用原服务后端。轮子后端通过 MTMD 处理参考图，每次生成创建新的原生采样器，仅对生成 token 施加惩罚，无需 `llama-server.exe` 或 `flux3-pe-runtime.json`。可用平台和加速能力取决于轮子及本机环境；本地 GPU 模型实测环境为 Windows x64 / CUDA 13.2，未在 Linux/macOS GPU 上实测。
 
 ## 使用
 
-1. 添加 **FLUX 3 PE Model (GGUF)**，选择 Q4_K_M 模型。
+1. 添加 **FLUX 3 PE Model (GGUF)**，选择 Q4_K_M 模型，`backend` 保持 `auto` 或选择 `llama-cpp-python`。
 2. 连接 **FLUX 3 Prompt Enhancement** 并填写需求；使用参考图时，按顺序连接图片。
 3. 将 `enhanced_prompt` 连接文本编码器，或使用 ComfyUI 内置 **Preview as Text** 查看结果。`details_json` 包含耗时、缓存和恢复信息。
 
@@ -79,7 +88,7 @@
 
 ## 验证与开发
 
-PE 核心经 40 条结构与受检文字回归、7 次真实画布运行、工作流保存重开及 PNG 工作流恢复验证。其中一条中文编辑使用了一次恢复。上述检查不代表任意提示词的语义均完全正确。
+0.2.0 Python 轮子后端已通过 **450 项单元测试**、**40 条真实模型结构与受检文字回归**、7 次真实画布运行、工作流保存重开及 PNG 工作流恢复验证。其中一条中文编辑使用了一次恢复。上述检查不代表任意提示词的语义均完全正确。
 
 [开发、运行库构建及性能说明](docs/DEVELOPMENT.md)
 
@@ -91,4 +100,4 @@ PE 核心经 40 条结构与受检文字回归、7 次真实画布运行、工�
 
 ## 致谢与许可
 
-节点集成：**T8star**。PUP 权重及参考代码来自 [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup)，采用 Apache-2.0；运行库基于 MIT 许可的 [llama.cpp](https://github.com/ggml-org/llama.cpp)，包含本仓库的采样补丁。CUDA 库遵循 NVIDIA 对应许可。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [licenses](licenses)。
+节点集成：**T8star**。PUP 权重及参考代码来自 [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup)，采用 Apache-2.0；推理基于 MIT 许可的 [llama.cpp](https://github.com/ggml-org/llama.cpp)，可选的服务运行库包含本仓库的采样补丁。CUDA 库遵循 NVIDIA 对应许可。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [licenses](licenses)。

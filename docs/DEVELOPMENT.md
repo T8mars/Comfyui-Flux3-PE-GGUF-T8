@@ -4,9 +4,11 @@ The production backend uses the official PUP revision `8b069751eb5dcab23829d9c5e
 
 ## Backend integration
 
-The node currently starts an owned `llama-server` process. Its supplied and validated prebuilt runtime targets Windows x64 / NVIDIA CUDA 13.4. GGUF weights are platform-independent, and upstream [llama.cpp binaries](https://github.com/ggml-org/llama.cpp/releases) and [llama-cpp-python wheels](https://github.com/abetlen/llama-cpp-python#installation) offer other deployment options.
+Version 0.2.0 adds in-process inference using an installed [llama-cpp-python wheel](https://github.com/abetlen/llama-cpp-python#installation) (>=0.3.36, <0.4). `auto` prefers that backend; `llama-cpp-python` and `llama-server` select explicitly. Wheel inference does not require a server executable or runtime manifest. The original, owned-server backend retains its Windows x64 / NVIDIA CUDA 13.4 runtime and integrity checks.
 
-Those upstream packages are not currently drop-in replacements for this node's runtime. `ModelSpec.load` requires a matching `flux3-pe-runtime.json`, verifies the executable and patched Windows DLLs, and startup checks for the `penalties_generated_only` sampling extension. A Python-wheel backend would also need compatible PUP/Qwen3.5 multimodal inference and equivalent sampling behavior. Direct Python-wheel and Linux/macOS integration have not yet been implemented or validated.
+The wheel backend renders the model's chat template with thinking disabled, evaluates multimodal chunks through MTMD while preserving its returned positions, and samples with a fresh native penalty/greedy chain. Only sampled output tokens enter penalty history, so this backend does not need the server sampling patch. Token decoding uses the C API's returned byte count rather than the wheel helper's padded buffer. Temporary native objects are freed on errors and cancellation; `keep_loaded=false` also closes the model and projector.
+
+`python scripts/wheel_native_check.py` checks the installed wheel's MTMD interfaces and generated-only penalties without model downloads. CI runs this on Windows and Linux with the official CPU wheel. Real GPU/model validation uses the official 0.3.36 CUDA 13.2 Windows wheel and compatible CUDA libraries. Linux/macOS GPU inference has not been locally validated.
 
 ## Test
 
@@ -17,10 +19,10 @@ $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
 python scripts/run_checks.py
 ```
 
-Real model validation additionally requires the GGUF files, the patched runtime and an NVIDIA GPU:
+Real model validation additionally requires the GGUF files, a compatible wheel (or the optional patched server runtime) and an NVIDIA GPU:
 
 ```powershell
-python scripts/evaluate.py --models Q4_K_M --output artifacts/evaluation-q4.json
+python scripts/evaluate.py --backend llama-cpp-python --models Q4_K_M --output artifacts/evaluation-q4.json
 python scripts/lifecycle_smoke.py
 ```
 
@@ -37,7 +39,7 @@ Conversion requires the upstream llama.cpp conversion dependencies, Transformers
 
 ## Benchmark scope
 
-An eight-case comparison on an RTX 5090 Laptop 24 GB used the same llama.cpp backend:
+The original server backend's eight-case comparison on an RTX 5090 Laptop 24 GB used the same llama.cpp backend for BF16 and Q4_K_M:
 
 | Metric | BF16 | Q4_K_M |
 |---|---:|---:|

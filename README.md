@@ -11,11 +11,12 @@ Local prompt enhancement for ComfyUI, powered by Black Forest Labs' **FLUX 3 Ima
 - Text enhancement, reference-image editing instructions and both layout modes.
 - Up to **10 reference images**, with explicit image order and locked object boxes.
 - `STRING` output for text encoders, configurable result caching and a maximum of one recovery attempt.
+- Direct inference with an installed **llama-cpp-python wheel**, including reference images; no separate server executable is needed for this backend.
 - PE memory release before image generation with `keep_loaded=false`.
 
 ## Installation
 
-The **prebuilt runtime currently supplied and tested with this node** targets **Windows x64 / NVIDIA CUDA 13.4**. It requires a compatible NVIDIA driver and a recent ComfyUI with the V3 node API. GGUF model files are platform-independent; this Windows requirement describes the current node runtime.
+Requires Python 3.10+ and a recent ComfyUI with the V3 node API. The Python-wheel backend uses the installed wheel and its platform-specific dependencies. The optional prebuilt server runtime targets Windows x64 / NVIDIA CUDA 13.4.
 
 1. Install **FLUX 3 PE GGUF (T8)** through ComfyUI Manager when the Registry version is available, or clone into `ComfyUI/custom_nodes`:
 
@@ -32,7 +33,15 @@ The **prebuilt runtime currently supplied and tested with this node** targets **
    | `mmproj-flux3-klein-pup-F16.gguf` | 0.92 GB |
    | `manifest.json` | Small metadata file |
 
-4. Download `flux3-pe-runtime-win-x64-cuda13.4.zip` from [Releases](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases), extract it into the node folder, and restart ComfyUI. The executable should be at `runtime/bin/llama-server.exe`.
+4. Install a compatible **llama-cpp-python >=0.3.36, <0.4** wheel into the **same Python that runs ComfyUI**, then restart ComfyUI. An existing compatible installation can be reused. For example, with CUDA 13.2 runtime libraries and a compatible driver:
+
+   ```bash
+   python -m pip install --upgrade --only-binary=llama-cpp-python llama-cpp-python==0.3.36 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu132
+   ```
+
+   Select the wheel matching your system below. The CPU index can be used without CUDA. GPU wheels require compatible CUDA libraries and drivers.
+
+   To use the original **server backend**, download `flux3-pe-runtime-win-x64-cuda13.4.zip` from [v0.1.5 runtime downloads](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases/tag/v0.1.5), extract it into the node folder, and select `llama-server`. Its executable should be at `runtime/bin/llama-server.exe`.
 
 Model files stay outside Git and the Registry package. Enhancement runs locally; node execution does not upload prompts or reference images.
 
@@ -42,11 +51,11 @@ Model files stay outside Git and the Registry package. Enhancement runs locally;
 - [llama-cpp-python GitHub releases](https://github.com/abetlen/llama-cpp-python/releases) and [installation guide](https://github.com/abetlen/llama-cpp-python#installation): Python bindings that can run inference without a separate server executable.
 - Official wheel files: [CPU](https://abetlen.github.io/llama-cpp-python/whl/cpu/llama-cpp-python/) · [CUDA 12.4](https://abetlen.github.io/llama-cpp-python/whl/cu124/llama-cpp-python/) · [CUDA 13.2](https://abetlen.github.io/llama-cpp-python/whl/cu132/llama-cpp-python/). Select a wheel matching your Python version, OS, architecture and CUDA requirements; see the installation guide for other builds.
 
-**Current integration:** this node starts a separate, patched llama.cpp server and verifies its runtime manifest. The PE sampling extension applies penalties only to generated tokens. Stock upstream binaries and Python wheels are not drop-in replacements for that runtime. A direct Python-wheel backend and Linux/macOS integration have not yet been implemented or tested.
+**Backend selection:** `auto` prefers a compatible installed Python wheel and otherwise uses the packaged server if available. Select `llama-cpp-python` to require in-process inference, or `llama-server` for the original server backend. The wheel backend uses MTMD for reference images and a fresh native sampler to apply penalties only to generated tokens; it needs neither `llama-server.exe` nor `flux3-pe-runtime.json`. Python-wheel availability and acceleration depend on your OS and hardware; local GPU model validation used Windows x64 / CUDA 13.2, not Linux/macOS GPUs.
 
 ## Usage
 
-1. Add **FLUX 3 PE Model (GGUF)** and select the Q4_K_M model.
+1. Add **FLUX 3 PE Model (GGUF)**, select the Q4_K_M model, and leave `backend=auto` or select `llama-cpp-python`.
 2. Connect it to **FLUX 3 Prompt Enhancement** and enter a prompt. Connect images in reference order when needed.
 3. Connect `enhanced_prompt` to a text encoder or ComfyUI's **Preview as Text**. `details_json` reports timing, caching and recovery.
 
@@ -79,7 +88,7 @@ The image-generation example additionally requires FLUX 3 diffusion weights, its
 
 ## Validation and development
 
-The PE core passed 40 structural/text-preservation cases, seven real canvas executions, workflow save/reopen checks and PNG workflow restoration. One Chinese editing case used the bounded recovery path. These checks do not guarantee semantic correctness for every prompt.
+The 0.2.0 Python-wheel backend passed **450 unit tests**, **40 real model structural/text-preservation cases**, seven real canvas executions, workflow save/reopen checks and PNG workflow restoration. One Chinese editing case used the bounded recovery path. These checks do not guarantee semantic correctness for every prompt.
 
 [Development, runtime build and benchmark notes](docs/DEVELOPMENT.md)
 
@@ -91,4 +100,4 @@ The PE core passed 40 structural/text-preservation cases, seven real canvas exec
 
 ## Credits and license
 
-Node integration: **T8star**. PUP weights and reference code: [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup), Apache-2.0. Runtime: [llama.cpp](https://github.com/ggml-org/llama.cpp), MIT, with the included sampling patch. CUDA libraries retain NVIDIA's license terms. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [licenses](licenses).
+Node integration: **T8star**. PUP weights and reference code: [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup), Apache-2.0. Inference: [llama.cpp](https://github.com/ggml-org/llama.cpp), MIT; the optional server runtime includes the sampling patch. CUDA libraries retain NVIDIA's license terms. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [licenses](licenses).

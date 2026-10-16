@@ -109,6 +109,7 @@ def main():
     parser.add_argument("--ids", nargs="+")
     parser.add_argument("--max-tokens", type=int, default=3584)
     parser.add_argument("--gpu-layers", default="all")
+    parser.add_argument("--backend", choices=["auto", "llama-cpp-python", "llama-server"], default="auto")
     parser.add_argument("--strict", action="store_true", help="Disable bounded recovery to measure the original decoding policy")
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/evaluation.json")
     args = parser.parse_args()
@@ -135,7 +136,7 @@ def main():
     report = {"source_revision": "8b069751eb5dcab23829d9c5eccb470eb8b8a4ed", "input_identity": evaluation_input_identity(), "recovery_enabled": not args.strict, "results": records}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     for name in args.models:
-        spec = ModelSpec.load(ROOT / f"models/gguf/flux3-klein-pup-{name}.gguf", gpu_layers=args.gpu_layers)
+        spec = ModelSpec.load(ROOT / f"models/gguf/flux3-klein-pup-{name}.gguf", gpu_layers=args.gpu_layers, **({} if args.backend == "auto" else {"backend": args.backend}))
         for case in samples:
             memory, stopped = [], threading.Event()
 
