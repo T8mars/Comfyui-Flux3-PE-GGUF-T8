@@ -7,6 +7,7 @@ import json
 import re
 from pathlib import Path
 import statistics
+import shutil
 import subprocess
 import sys
 import threading
@@ -102,6 +103,24 @@ def evaluation_input_identity():
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
 
 
+def gpu_sample():
+    """GPU monitoring is optional; CPU inference needs no NVIDIA utility."""
+    executable = shutil.which("nvidia-smi")
+    if executable is None:
+        return None
+    flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+    try:
+        result = subprocess.run([executable, "--query-gpu=memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, creationflags=flags, timeout=5)
+        if result.returncode:
+            return None
+        values = [[int(value.strip()) for value in line.split(",")] for line in result.stdout.splitlines() if line.strip()]
+        if not values or any(len(row) != 2 for row in values):
+            return None
+        return [sum(row[0] for row in values), max(row[1] for row in values)]
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--models", nargs="+", default=["Q4_K_M"])
@@ -141,11 +160,12 @@ def main():
             memory, stopped = [], threading.Event()
 
             def monitor():
+                if args.gpu_layers == "0":
+                    return
                 while not stopped.wait(0.5):
-                    flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-                    result = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,utilization.gpu", "--format=csv,noheader,nounits"], capture_output=True, text=True, creationflags=flags)
-                    if result.returncode == 0:
-                        memory.append([int(value.strip()) for value in result.stdout.strip().split(",")])
+                    sample = gpu_sample()
+                    if sample is not None:
+                        memory.append(sample)
 
             thread = threading.Thread(target=monitor, daemon=True)
             thread.start()

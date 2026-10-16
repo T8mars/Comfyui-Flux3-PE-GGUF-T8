@@ -1,20 +1,33 @@
 {
-  "version": "0.2.0",
-  "source_identity": "174d227c19185391de5118cf86e17d74eda4e828be0137d8b99b26f1847476a1",
+  "version": "0.2.1",
+  "source_identity": "291bdb4757e5b8984c67c0e7e204f4485e09985b3fb36a629edfa34f0581de8e",
   "backend": "llama-cpp-python",
   "wheel_version": "0.3.36",
-  "tested_gpu_environment": "Windows x64 / official CUDA 13.2 wheel / compatible CUDA libraries / RTX 5090 Laptop 24 GB",
-  "unit_tests": 450,
+  "tested_gpu_environment": "Clean Windows x64 / official CUDA 13.2 wheel / compatible CUDA libraries / RTX 5090 Laptop 24 GB",
+  "external_native_preload_script_used": false,
+  "unit_tests": 470,
   "functional_tasks": 40,
   "functional_passed": 40,
   "recovered_cases": [
     "i2i_08"
   ],
-  "median_generation_seconds": 3.5155000000000003,
+  "median_generation_seconds": 3.2495,
+  "linux_cpu_tasks": 6,
+  "linux_cpu_passed": 6,
+  "linux_cpu_ci_url": "https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/actions/runs/38888558362",
+  "linux_runtime_matches_current_source": true,
+  "linux_case_ids": [
+    "t2i_01",
+    "t2i_04",
+    "i2i_06",
+    "i2i_10",
+    "t2i_bbox_04",
+    "i2i_bbox_07"
+  ],
   "real_canvas_runs": 7,
   "saved_workflows": 4,
   "second_save_reopen_pass": true,
   "png_restores_workflow": true,
   "cache_cancel_release_verified": true,
-  "note": "Model checks cover structure and sampled literal text; they do not guarantee every semantic detail. Linux/macOS GPUs were not locally tested. No server executable or server runtime manifest is required by this backend."
+  "note": "Model checks cover structure and sampled literal text, not every semantic detail. Linux/macOS GPU inference was not tested. CPU-only monitoring was corrected after the Linux run and is covered separately by unit/portable CI tests; the PE runtime and model corpus are unchanged."
 }

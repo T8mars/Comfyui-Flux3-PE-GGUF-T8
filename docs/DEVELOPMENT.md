@@ -8,7 +8,13 @@ Version 0.2.0 adds in-process inference using an installed [llama-cpp-python whe
 
 The wheel backend renders the model's chat template with thinking disabled, evaluates multimodal chunks through MTMD while preserving its returned positions, and samples with a fresh native penalty/greedy chain. Only sampled output tokens enter penalty history, so this backend does not need the server sampling patch. Token decoding uses the C API's returned byte count rather than the wheel helper's padded buffer. Temporary native objects are freed on errors and cancellation; `keep_loaded=false` also closes the model and projector.
 
+Version 0.2.1 fixes loading the CUDA wheel on clean Windows installations. The node loads the installed wheel's DLLs in dependency order using Windows' secure default search behavior and keeps the necessary directory handles alive; compatible CUDA libraries must still be installed. It also frees a partially initialized projector before its model, including the path where MTMD has not registered a cleanup callback. Unsupported wheel versions >=0.4 are rejected before native loading.
+
 `python scripts/wheel_native_check.py` checks the installed wheel's MTMD interfaces and generated-only penalties without model downloads. CI runs this on Windows and Linux with the official CPU wheel. Real GPU/model validation uses the official 0.3.36 CUDA 13.2 Windows wheel and compatible CUDA libraries. Linux/macOS GPU inference has not been locally validated.
+
+Manually dispatch the **Tests** workflow to additionally download the pinned production GGUF files and run six real Linux CPU tasks covering all four PE modes, Chinese text and ten references. `scripts/download_gguf.py` checks the pinned manifest, model and projector SHA256 values before exposing completed files.
+
+The six Linux CPU tasks passed in [the real-model CI run](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/actions/runs/38888558362). Its nine runtime source files match the 0.2.1 core exactly. That run exposed a GPU-monitoring assumption in the evaluation utility; CPU evaluation now skips NVIDIA sampling, and missing drivers or unsupported metrics no longer raise in its monitoring thread. This utility change is separately tested on Windows and Linux without changing the tested PE runtime or corpus.
 
 ## Test
 

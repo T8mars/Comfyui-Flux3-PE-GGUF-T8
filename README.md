@@ -41,6 +41,8 @@ Requires Python 3.10+ and a recent ComfyUI with the V3 node API. The Python-whee
 
    Select the wheel matching your system below. The CPU index can be used without CUDA. GPU wheels require compatible CUDA libraries and drivers.
 
+   On Windows, set `CUDA_PATH` to the compatible CUDA installation if its runtime libraries are not otherwise available. Version **0.2.1** loads the wheel's DLL dependencies directly; no external preload script is required.
+
    To use the original **server backend**, download `flux3-pe-runtime-win-x64-cuda13.4.zip` from [v0.1.5 runtime downloads](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases/tag/v0.1.5), extract it into the node folder, and select `llama-server`. Its executable should be at `runtime/bin/llama-server.exe`.
 
 Model files stay outside Git and the Registry package. Enhancement runs locally; node execution does not upload prompts or reference images.
@@ -88,7 +90,7 @@ The image-generation example additionally requires FLUX 3 diffusion weights, its
 
 ## Validation and development
 
-The 0.2.0 Python-wheel backend passed **450 unit tests**, **40 real model structural/text-preservation cases**, seven real canvas executions, workflow save/reopen checks and PNG workflow restoration. One Chinese editing case used the bounded recovery path. These checks do not guarantee semantic correctness for every prompt.
+The 0.2.1 Python-wheel backend passed **470 unit tests**, **40 real model structural/text-preservation cases in a clean Windows environment**, and **six real Linux CPU tasks** covering all four PE modes, Chinese text and ten references. Seven real canvas executions, workflow save/reopen checks and PNG workflow restoration also passed. No external native-library preload script was used for these model or canvas checks. One Windows Chinese editing case used the bounded recovery path. These checks do not guarantee semantic correctness for every prompt.
 
 [Development, runtime build and benchmark notes](docs/DEVELOPMENT.md)
 
