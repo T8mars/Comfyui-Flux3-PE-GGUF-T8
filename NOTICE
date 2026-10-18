@@ -5,6 +5,15 @@ Qwen3.5-9B, and distributed under Apache-2.0.
 Source model: black-forest-labs/flux-3-image-klein-pup
 Revision: 8b069751eb5dcab23829d9c5eccb470eb8b8a4ed
 
+The separately distributed Heretic GGUF variant is converted from
+tuanlai/flux-3-image-klein-pup-heretic on ModelScope:
+https://modelscope.cn/models/tuanlai/flux-3-image-klein-pup-heretic
+Weight-file revision: 80efba65e01bb2e320dea412fa657d701491b443
+Source SHA256: beee7e8b4aa5e5ff1b9342d70b46022f9508aa6ae5010c76427ced6a0f0a8f50
+Its upstream model card has separate license declarations; see
+docs/huggingface/LICENSES.md in the node repository or LICENSES.md on the Hub.
+Heretic weights are not relicensed by this integration.
+
 flux3_pe/bbox.py is copied from Black Forest Labs' Apache-2.0 reference code:
 https://github.com/black-forest-labs/flux-3-image-klein
 Revision: 45e57c9fb06f9751cdced29a65c5d2171003be05

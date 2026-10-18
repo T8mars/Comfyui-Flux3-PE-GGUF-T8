@@ -6,6 +6,8 @@ Local prompt enhancement for ComfyUI, powered by Black Forest Labs' **FLUX 3 Ima
 
 [Models](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy) · [Runtime downloads](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases) · [Workflow preview](docs/images/workflow.png)
 
+**v0.2.3:** Official PUP and Heretic PUP Q4_K_M are available on Hugging Face, with matching projectors, manifests and SHA256 checksums. This release updates model distribution and documentation; inference code and workflows are unchanged from the validated v0.2.2.
+
 ## Features
 
 - Text enhancement, reference-image editing instructions and both layout modes.
@@ -25,13 +27,15 @@ Requires Python 3.10+ and a recent ComfyUI with the V3 node API. The Python-whee
    ```
 
 2. Use your **ComfyUI Python** to install `requirements.txt`.
-3. Download these files from the [model repository](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/tree/main) into the node folder's `models/gguf/`:
+3. Choose a model from the [model repository](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/tree/main). For **official PUP**, download all three files into the node folder's `models/gguf/`:
 
    | File | Size |
    |---|---:|
-   | `flux3-klein-pup-Q4_K_M.gguf` | 5.63 GB |
-   | `mmproj-flux3-klein-pup-F16.gguf` | 0.92 GB |
-   | `manifest.json` | Small metadata file |
+   | [flux3-klein-pup-Q4_K_M.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/flux3-klein-pup-Q4_K_M.gguf) | 5.63 GB |
+   | [mmproj-flux3-klein-pup-F16.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/mmproj-flux3-klein-pup-F16.gguf) | 0.92 GB |
+   | [manifest.json](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/manifest.json) | Small metadata file |
+
+   For **Heretic PUP**, use the [Heretic downloads](#heretic-pup) and its separate `heretic/` directory.
 
 4. Install a compatible **llama-cpp-python >=0.3.36, <0.4** wheel into the **same Python that runs ComfyUI**, then restart ComfyUI. An existing compatible installation can be reused. For example, with CUDA 13.2 runtime libraries and a compatible driver:
 
@@ -92,7 +96,22 @@ The image-generation example additionally requires FLUX 3 diffusion weights, its
 
 Version 0.2.2 supports the pinned [tuanlai/flux-3-image-klein-pup-heretic](https://modelscope.cn/models/tuanlai/flux-3-image-klein-pup-heretic) checkpoint. It uses the same four PE protocols, keeps separate model artifacts and reports its actual source in the details output.
 
-Place `flux3-klein-pup-heretic-Q4_K_M.gguf`, `mmproj-flux3-klein-pup-heretic-F16.gguf` and their `manifest.json` together in `models/gguf/heretic/` or `ComfyUI/models/flux3_pe/heretic/`. Keep the official model's manifest separate. Select `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf` in the loader.
+Download these files together into `models/gguf/heretic/` or `ComfyUI/models/flux3_pe/heretic/`:
+
+| File | Size |
+|---|---:|
+| [flux3-klein-pup-heretic-Q4_K_M.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/flux3-klein-pup-heretic-Q4_K_M.gguf) | 5.63 GB |
+| [mmproj-flux3-klein-pup-heretic-F16.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/mmproj-flux3-klein-pup-heretic-F16.gguf) | 0.92 GB |
+| [manifest.json](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/manifest.json) | Source and SHA256 |
+| [SHA256SUMS.txt](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/SHA256SUMS.txt) | Download verification |
+
+Or run this from the node folder with the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) installed:
+
+```bash
+hf download t8star/Flux3-PE-GGUF-Comfy --include "heretic/*" --local-dir models/gguf
+```
+
+Keep the official model's manifest separate. Select `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf` in the loader and use node version **0.2.2+**.
 
 - [Heretic text enhancement](examples/05_heretic_prompt_enhancement.json)
 - [Heretic layout enhancement](examples/06_heretic_layout_enhancement.json)
@@ -123,4 +142,4 @@ The 0.2.1 Python-wheel backend passed **470 unit tests**, **40 real model struct
 
 ## Credits and license
 
-Node integration: **T8star**. PUP weights and reference code: [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup), Apache-2.0. Inference: [llama.cpp](https://github.com/ggml-org/llama.cpp), MIT; the optional server runtime includes the sampling patch. CUDA libraries retain NVIDIA's license terms. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [licenses](licenses).
+Node integration: **T8star**, Apache-2.0. Official PUP weights and reference code: [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup), Apache-2.0. Heretic checkpoint: **tuanlai**; see its [upstream license declarations](docs/huggingface/LICENSES.md). Inference: [llama.cpp](https://github.com/ggml-org/llama.cpp), MIT; the optional server runtime includes the sampling patch. CUDA libraries retain NVIDIA's license terms. See [LICENSE](LICENSE), [NOTICE](NOTICE) and [licenses](licenses).

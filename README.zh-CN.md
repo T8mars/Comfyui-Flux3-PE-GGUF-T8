@@ -6,6 +6,8 @@
 
 [模型下载](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy) · [运行库下载](https://github.com/T8mars/Comfyui-Flux3-PE-GGUF-T8/releases) · [工作流预览](docs/images/workflow.png)
 
+**v0.2.3：**抱脸已提供官方 PUP 和 Heretic PUP 的 Q4_K_M、配套视觉文件、清单及 SHA256。本版完善模型分发和文档，推理代码与工作流保持已验证的 v0.2.2 版本。
+
 ## 功能
 
 - 支持纯文本增强、参考图编辑指令，以及两种布局增强模式。
@@ -25,13 +27,15 @@
    ```
 
 2. 使用 **ComfyUI 自带的 Python** 安装 `requirements.txt`。
-3. 从[模型仓库](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/tree/main)下载以下文件，放入节点目录的 `models/gguf/`：
+3. 从[模型仓库](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/tree/main)选择模型。使用**官方 PUP** 时，将以下三个文件一起放入节点目录的 `models/gguf/`：
 
    | 文件 | 大小 |
    |---|---:|
-   | `flux3-klein-pup-Q4_K_M.gguf` | 5.63 GB |
-   | `mmproj-flux3-klein-pup-F16.gguf` | 0.92 GB |
-   | `manifest.json` | 少量元数据 |
+   | [flux3-klein-pup-Q4_K_M.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/flux3-klein-pup-Q4_K_M.gguf) | 5.63 GB |
+   | [mmproj-flux3-klein-pup-F16.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/mmproj-flux3-klein-pup-F16.gguf) | 0.92 GB |
+   | [manifest.json](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/manifest.json) | 少量元数据 |
+
+   使用 **Heretic PUP** 时，下载下方 [Heretic 文件](#heretic-pup)，保存到独立的 `heretic/` 子目录。
 
 4. 在**运行 ComfyUI 的同一个 Python** 中安装兼容的 **llama-cpp-python >=0.3.36、<0.4** 轮子，然后重启 ComfyUI；已有兼容版本可直接复用。以已具备 CUDA 13.2 运行库和兼容驱动的环境为例：
 
@@ -92,7 +96,22 @@
 
 0.2.2 增加 [tuanlai/flux-3-image-klein-pup-heretic](https://modelscope.cn/models/tuanlai/flux-3-image-klein-pup-heretic) 的固定版本支持。Heretic 与官方权重分目录保存，运行详情会记录实际来源；两种模型使用相同的四种 PE 协议。
 
-将 Heretic 的 `flux3-klein-pup-heretic-Q4_K_M.gguf`、`mmproj-flux3-klein-pup-heretic-F16.gguf` 和对应的 `manifest.json` 一起放入 `models/gguf/heretic/`，或 `ComfyUI/models/flux3_pe/heretic/`。不要覆盖官方模型的清单。加载节点选择 `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf`。
+将以下文件一起下载到 `models/gguf/heretic/`，或 `ComfyUI/models/flux3_pe/heretic/`：
+
+| 文件 | 大小 |
+|---|---:|
+| [flux3-klein-pup-heretic-Q4_K_M.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/flux3-klein-pup-heretic-Q4_K_M.gguf) | 5.63 GB |
+| [mmproj-flux3-klein-pup-heretic-F16.gguf](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/mmproj-flux3-klein-pup-heretic-F16.gguf) | 0.92 GB |
+| [manifest.json](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/manifest.json) | 来源与 SHA256 |
+| [SHA256SUMS.txt](https://huggingface.co/t8star/Flux3-PE-GGUF-Comfy/resolve/main/heretic/SHA256SUMS.txt) | 下载校验 |
+
+也可安装 [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) 后，在节点目录执行：
+
+```bash
+hf download t8star/Flux3-PE-GGUF-Comfy --include "heretic/*" --local-dir models/gguf
+```
+
+保留官方模型的独立清单。使用节点 **0.2.2 及以上版本**，加载节点选择 `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf`。
 
 - [Heretic 纯文本增强](examples/05_heretic_prompt_enhancement.json)
 - [Heretic 布局增强](examples/06_heretic_layout_enhancement.json)
@@ -123,4 +142,4 @@ Heretic Q4_K_M 已通过 **40/40 条真实模型任务、7 次画布运行、四
 
 ## 致谢与许可
 
-节点集成：**T8star**。PUP 权重及参考代码来自 [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup)，采用 Apache-2.0；推理基于 MIT 许可的 [llama.cpp](https://github.com/ggml-org/llama.cpp)，可选的服务运行库包含本仓库的采样补丁。CUDA 库遵循 NVIDIA 对应许可。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [licenses](licenses)。
+节点集成：**T8star**，Apache-2.0。官方 PUP 权重及参考代码来自 [Black Forest Labs](https://huggingface.co/black-forest-labs/flux-3-image-klein-pup)，采用 Apache-2.0。Heretic 权重来自 **tuanlai**，见[上游许可声明](docs/huggingface/LICENSES.md)。推理基于 MIT 许可的 [llama.cpp](https://github.com/ggml-org/llama.cpp)，可选的服务运行库包含本仓库的采样补丁。CUDA 库遵循 NVIDIA 对应许可。详见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [licenses](licenses)。

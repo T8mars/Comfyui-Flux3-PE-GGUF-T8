@@ -1,0 +1,28 @@
+{
+  "version": "0.2.3",
+  "huggingface_repository": "t8star/Flux3-PE-GGUF-Comfy",
+  "huggingface_revision": "88e2bb4fb2c7df9e6d860a41981cc3981fd92a99",
+  "official_artifacts_preserved": true,
+  "validation_baseline": "v0.2.2",
+  "note": "v0.2.3 changes distribution, documentation and package version. Real-model/canvas evidence remains explicitly attributed to v0.2.2.",
+  "models": {
+    "heretic/flux3-klein-pup-heretic-Q4_K_M.gguf": {
+      "bytes": 5629108768,
+      "sha256": "83cbb078c55885d2be5683d19df4b78c19b0c40d72e4608a4e4bb8b281c090bf"
+    },
+    "heretic/mmproj-flux3-klein-pup-heretic-F16.gguf": {
+      "bytes": 918165440,
+      "sha256": "df7bdc67f7be145eb75adb02563aebfc859a5f5c242cb9c748d1b3162f70e8ec"
+    }
+  },
+  "official_models": {
+    "flux3-klein-pup-Q4_K_M.gguf": {
+      "bytes": 5629109280,
+      "sha256": "9d9e739a648dc24d6d52639fdeca24fb2f2fe9d6f31eeac834d026602334558d"
+    },
+    "mmproj-flux3-klein-pup-F16.gguf": {
+      "bytes": 918165984,
+      "sha256": "2a32728eb18bd96e96a2b5be7f88eeaedeedd8067876fa603111eb9b8855845d"
+    }
+  }
+}

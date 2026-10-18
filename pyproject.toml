@@ -1,6 +1,6 @@
 [project]
 name = "flux3-pe-gguf-t8"
-version = "0.2.2"
+version = "0.2.3"
 description = "Local multimodal FLUX 3 prompt enhancement with Q4 GGUF"
 readme = "README.md"
 requires-python = ">=3.10"
