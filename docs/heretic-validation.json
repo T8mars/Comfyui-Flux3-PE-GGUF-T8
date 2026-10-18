@@ -1,0 +1,52 @@
+{
+  "version": "0.2.2",
+  "source_identity": "a15057177c5e65acb14dccb4537bcc380ba503ca9a55b5a445fc2715ddcb512e",
+  "source_model": "tuanlai/flux-3-image-klein-pup-heretic",
+  "source_revision": "80efba65e01bb2e320dea412fa657d701491b443",
+  "source_sha256": "beee7e8b4aa5e5ff1b9342d70b46022f9508aa6ae5010c76427ced6a0f0a8f50",
+  "backend": "llama-cpp-python",
+  "wheel_version": "0.3.36",
+  "unit_tests": 481,
+  "model_tasks": 40,
+  "model_passed": 40,
+  "modes": [
+    "i2i",
+    "i2i_bbox",
+    "t2i",
+    "t2i_bbox"
+  ],
+  "recovered_cases": [],
+  "median_generation_seconds": 2.883,
+  "official_model_regression_passed": 6,
+  "real_canvas_runs": 7,
+  "saved_workflows": 4,
+  "second_save_reopen_pass": true,
+  "png_restores_workflow": true,
+  "model": {
+    "file": "flux3-klein-pup-heretic-Q4_K_M.gguf",
+    "bytes": 5629108768,
+    "sha256": "83cbb078c55885d2be5683d19df4b78c19b0c40d72e4608a4e4bb8b281c090bf",
+    "architecture": "qwen35",
+    "layers": 32,
+    "vocab_size": 248320,
+    "tensor_count": 427,
+    "tensor_types": {
+      "Q6_K": 33,
+      "F32": 177,
+      "Q4_K": 217
+    }
+  },
+  "mmproj": {
+    "file": "mmproj-flux3-klein-pup-heretic-F16.gguf",
+    "bytes": 918165440,
+    "sha256": "df7bdc67f7be145eb75adb02563aebfc859a5f5c242cb9c748d1b3162f70e8ec",
+    "type": "F16",
+    "source_revision": "80efba65e01bb2e320dea412fa657d701491b443",
+    "tensor_count": 334,
+    "source_tensor_count": 333,
+    "layout_note": "One 5D temporal patch weight becomes two 4D GGUF tensors",
+    "projector_type": "qwen3vl_merger"
+  },
+  "environment": "Windows x64 / RTX 5090 Laptop 24 GB / llama-cpp-python CUDA 13.2",
+  "note": "Structural and sampled literal-text checks; not a guarantee of arbitrary prompt semantics. Heretic inference on other operating systems was not tested."
+}

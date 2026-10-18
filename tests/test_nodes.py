@@ -104,6 +104,23 @@ def test_loader_fingerprint_and_execution_forward_context_without_stale_handle()
     """)
 
 
+def test_loader_model_options_use_portable_subdirectory_paths():
+    run_node_script(r"""
+        folder_paths.get_filename_list = lambda _: [
+            r'heretic\pup-Q4_K_M.gguf', 'heretic/pup-Q4_K_M.gguf',
+            r'heretic\mmproj-pup.gguf', r'heretic\pup-Q4_K_M.partial.gguf',
+            'official-Q4_K_M.gguf',
+        ]
+        latest.io.Combo = types.SimpleNamespace(Input=lambda name, **options: dict(name=name, **options))
+        latest.io.Int = types.SimpleNamespace(Input=lambda name, **options: dict(name=name, **options))
+        latest.io.Schema = lambda **schema: schema
+        nodes.MODEL_TYPE = types.SimpleNamespace(Output=lambda **options: options)
+        schema = nodes.Flux3PELoader.define_schema()
+        options = schema['inputs'][0]['options']
+        assert options == ['heretic/pup-Q4_K_M.gguf', 'official-Q4_K_M.gguf'], options
+    """)
+
+
 def test_internal_cache_hit_does_not_unload_comfy_image_models():
     run_node_script("""
         unloads = []

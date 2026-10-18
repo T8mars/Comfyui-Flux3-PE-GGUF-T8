@@ -80,13 +80,34 @@
 - [PE → FLUX 3 完整出图](examples/03_pe_to_flux3.json)
 - [双参考图编辑指令](examples/04_reference_editing.json)
 
-在节点目录执行以下命令，可将四套画布和参考图复制到对应 ComfyUI：
+在节点目录执行以下命令，可将示例画布和参考图复制到对应 ComfyUI：
 
 ```powershell
 & .\scripts\install_comfy.ps1 -ComfyUI 'C:\你的路径\ComfyUI'
 ```
 
 完整出图示例还需另行准备 FLUX 3 出图模型、对应的 Qwen3-VL 文本编码器和 FLUX.2 VAE。
+
+### Heretic PUP
+
+0.2.2 增加 [tuanlai/flux-3-image-klein-pup-heretic](https://modelscope.cn/models/tuanlai/flux-3-image-klein-pup-heretic) 的固定版本支持。Heretic 与官方权重分目录保存，运行详情会记录实际来源；两种模型使用相同的四种 PE 协议。
+
+将 Heretic 的 `flux3-klein-pup-heretic-Q4_K_M.gguf`、`mmproj-flux3-klein-pup-heretic-F16.gguf` 和对应的 `manifest.json` 一起放入 `models/gguf/heretic/`，或 `ComfyUI/models/flux3_pe/heretic/`。不要覆盖官方模型的清单。加载节点选择 `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf`。
+
+- [Heretic 纯文本增强](examples/05_heretic_prompt_enhancement.json)
+- [Heretic 布局增强](examples/06_heretic_layout_enhancement.json)
+- [Heretic PE → FLUX 3 出图](examples/07_heretic_pe_to_flux3.json)
+- [Heretic 双参考图编辑](examples/08_heretic_reference_editing.json)
+
+源仓库提供 BF16 与 INT8 safetensors。转换 GGUF 时使用 **BF16** 文件，重命名为 `model.safetensors`，并配合官方固定版本的配置、分词器及图像处理文件。开发者先按[开发说明](docs/DEVELOPMENT.md)准备 llama.cpp 转换工具，再在源码仓库执行以下命令。脚本校验源权重 SHA256，仅接受已适配的版本：
+
+```bash
+python scripts/quantize.py --variant heretic --source "Heretic源文件目录" --output models/gguf/heretic --quants Q4_K_M
+```
+
+固定源文件版本：`80efba65e01bb2e320dea412fa657d701491b443`；协议与配置来源：官方 PUP `8b069751eb5dcab23829d9c5eccb470eb8b8a4ed`。Heretic 权重的许可说明见其源仓库。
+
+Heretic Q4_K_M 已通过 **40/40 条真实模型任务、7 次画布运行、四套工作流保存重开及 PNG 工作流恢复**；同时通过 481 项单元测试和官方模型的 6 条回归。实测使用 Windows / RTX 5090 Laptop / Python 轮子后端。[验证记录](docs/heretic-validation.json) · [实际画布预览](docs/images/heretic-workflow.png)
 
 ## 验证与开发
 

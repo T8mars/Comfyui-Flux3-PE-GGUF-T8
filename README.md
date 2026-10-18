@@ -80,13 +80,34 @@ Drag a JSON file from [examples](examples) into ComfyUI:
 - [PE → FLUX 3 image generation](examples/03_pe_to_flux3.json)
 - [Two-reference editing instructions](examples/04_reference_editing.json)
 
-To copy all four workflows and their reference images into your installation, run from the node folder:
+To copy the example workflows and their reference images into your installation, run from the node folder:
 
 ```powershell
 & .\scripts\install_comfy.ps1 -ComfyUI 'C:\path\to\ComfyUI'
 ```
 
 The image-generation example additionally requires FLUX 3 diffusion weights, its Qwen3-VL text encoder and FLUX.2 VAE. These are separate downloads.
+
+### Heretic PUP
+
+Version 0.2.2 supports the pinned [tuanlai/flux-3-image-klein-pup-heretic](https://modelscope.cn/models/tuanlai/flux-3-image-klein-pup-heretic) checkpoint. It uses the same four PE protocols, keeps separate model artifacts and reports its actual source in the details output.
+
+Place `flux3-klein-pup-heretic-Q4_K_M.gguf`, `mmproj-flux3-klein-pup-heretic-F16.gguf` and their `manifest.json` together in `models/gguf/heretic/` or `ComfyUI/models/flux3_pe/heretic/`. Keep the official model's manifest separate. Select `heretic/flux3-klein-pup-heretic-Q4_K_M.gguf` in the loader.
+
+- [Heretic text enhancement](examples/05_heretic_prompt_enhancement.json)
+- [Heretic layout enhancement](examples/06_heretic_layout_enhancement.json)
+- [Heretic PE → FLUX 3 image generation](examples/07_heretic_pe_to_flux3.json)
+- [Heretic two-reference editing](examples/08_heretic_reference_editing.json)
+
+The source repository provides BF16 and INT8 safetensors. For GGUF conversion, use its **BF16** checkpoint as `model.safetensors`, together with the pinned official PUP configuration, tokenizer and image-processing files. Prepare the llama.cpp conversion tools using the [development guide](docs/DEVELOPMENT.md), then run this from a source checkout. The converter verifies the source SHA256:
+
+```bash
+python scripts/quantize.py --variant heretic --source "path/to/heretic-source" --output models/gguf/heretic --quants Q4_K_M
+```
+
+Pinned source-file revision: `80efba65e01bb2e320dea412fa657d701491b443`. Protocol and configuration source: official PUP `8b069751eb5dcab23829d9c5eccb470eb8b8a4ed`. See the source repository for the Heretic weights' license information.
+
+Heretic Q4_K_M passed **40/40 real-model tasks, seven canvas executions, four workflow save/reopen checks and PNG workflow restoration**, alongside 481 unit tests and six official-model regressions. The real-model checks used Windows / RTX 5090 Laptop / the Python-wheel backend. [Validation record](docs/heretic-validation.json) · [Actual canvas preview](docs/images/heretic-workflow.png)
 
 ## Validation and development
 

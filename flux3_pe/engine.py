@@ -17,7 +17,7 @@ from typing import Callable
 
 import requests
 
-from .protocol import PEError, SOURCE_REVISION, finish_caption, has_repetition, prepare_request, recovery_payload
+from .protocol import PEError, SOURCE_MODEL, SOURCE_REVISION, HERETIC_MODEL, HERETIC_REVISION, HERETIC_SOURCE_SHA256, finish_caption, has_repetition, prepare_request, recovery_payload
 from .identity import SOURCE_IDENTITY
 from . import __version__
 
@@ -46,6 +46,8 @@ class ModelSpec:
     context: int = 8192
     gpu_layers: str = "all"
     backend: str = "llama-server"
+    source_model: str = SOURCE_MODEL
+    source_revision: str = SOURCE_REVISION
 
     @classmethod
     def load(cls, model: str | Path, server: str | Path | None = None, context: int = 8192, gpu_layers: str = "all", backend: str = "auto"):
@@ -58,9 +60,15 @@ class ModelSpec:
         model = Path(model).resolve()
         manifest_path = model.parent / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if manifest["source"]["revision"] != SOURCE_REVISION:
+        source = manifest["source"]
+        source_model = source.get("model_id", SOURCE_MODEL)
+        source_revision = source["revision"]
+        expected_revision = HERETIC_REVISION if source_model == HERETIC_MODEL else SOURCE_REVISION
+        if source_model not in (SOURCE_MODEL, HERETIC_MODEL) or source_revision != expected_revision:
             raise PEError("This model manifest does not describe the supported PUP revision")
-        if manifest["mmproj"].get("source_revision") != SOURCE_REVISION:
+        if source_model == HERETIC_MODEL and source.get("sha256") != HERETIC_SOURCE_SHA256:
+            raise PEError("Heretic source checksum does not match the supported checkpoint")
+        if manifest["mmproj"].get("source_revision") != expected_revision:
             raise PEError("The vision projector must use the supported PUP revision")
         entry = next((item for item in manifest["models"].values() if item["file"] == model.name), None)
         if entry is None:
@@ -71,6 +79,10 @@ class ModelSpec:
         for path, metadata in ((model, entry), (mmproj, manifest["mmproj"])):
             if not path.is_file() or path.stat().st_size != metadata["bytes"]:
                 raise PEError(f"Model artifact is missing or incomplete: {path}")
+            if source_model == HERETIC_MODEL:
+                stat = path.stat()
+                if runtime_checksum(path, stat.st_size, stat.st_mtime_ns) != metadata["sha256"]:
+                    raise PEError(f"Heretic model artifact checksum failed: {path}")
         if backend != "llama-server" and server is None and not (backend == "auto" and os.environ.get("FLUX3_PE_LLAMA_SERVER")):
             from .wheel_backend import wheel_identity
             try:
@@ -79,8 +91,8 @@ class ModelSpec:
                 if backend == "llama-cpp-python" or not (ROOT / "runtime/bin/llama-server.exe").is_file():
                     raise
             else:
-                revision = hashlib.sha256(json.dumps([entry["sha256"], model.stat().st_mtime_ns, manifest["mmproj"]["sha256"], mmproj.stat().st_mtime_ns, "llama-cpp-python", identity], sort_keys=True).encode()).hexdigest()
-                return cls(model, mmproj, None, revision, context, gpu_layers, "llama-cpp-python")
+                revision = hashlib.sha256(json.dumps([source_model, source_revision, entry["sha256"], model.stat().st_mtime_ns, manifest["mmproj"]["sha256"], mmproj.stat().st_mtime_ns, "llama-cpp-python", identity], sort_keys=True).encode()).hexdigest()
+                return cls(model, mmproj, None, revision, context, gpu_layers, "llama-cpp-python", source_model, source_revision)
         server = Path(server or os.environ.get("FLUX3_PE_LLAMA_SERVER", ROOT / "runtime/bin/llama-server.exe")).resolve()
         runtime_manifest = json.loads((server.parent / "flux3-pe-runtime.json").read_text(encoding="utf-8"))
         if runtime_manifest.get("penalties_generated_only") is not True:
@@ -99,8 +111,8 @@ class ModelSpec:
             stat = library.stat()
             if runtime_checksum(library, stat.st_size, stat.st_mtime_ns) != expected:
                 raise PEError(f"Runtime library checksum failed: {name}")
-        revision = hashlib.sha256(json.dumps([entry["sha256"], model.stat().st_mtime_ns, manifest["mmproj"]["sha256"], mmproj.stat().st_mtime_ns, runtime_manifest["server_sha256"], checksums], sort_keys=True).encode()).hexdigest()
-        return cls(model, mmproj, server, revision, context, gpu_layers)
+        revision = hashlib.sha256(json.dumps([source_model, source_revision, entry["sha256"], model.stat().st_mtime_ns, manifest["mmproj"]["sha256"], mmproj.stat().st_mtime_ns, runtime_manifest["server_sha256"], checksums], sort_keys=True).encode()).hexdigest()
+        return cls(model, mmproj, server, revision, context, gpu_layers, "llama-server", source_model, source_revision)
 
 
 class LlamaEngine:
@@ -333,7 +345,8 @@ def enhance(spec: ModelSpec, prompt: str, images=None, boxes=None, canvas=None, 
         metadata = {
             "mode": prepared.mode, "reference_sizes": prepared.reference_sizes,
             "plugin_version": __version__, "source_identity": SOURCE_IDENTITY,
-            "source_revision": SOURCE_REVISION, "model": spec.model.name, "model_revision": spec.revision,
+            "source_model": spec.source_model, "source_revision": spec.source_revision,
+            "protocol_source_revision": SOURCE_REVISION, "model": spec.model.name, "model_revision": spec.revision,
             "gpu_layers": spec.gpu_layers, "context_size": spec.context,
             "backend": spec.backend, "wheel_version": getattr(_engine, "version", None),
             "load_seconds": round(loaded - started, 4), "generation_seconds": round(time.monotonic() - loaded, 4),

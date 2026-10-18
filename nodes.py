@@ -19,7 +19,8 @@ folder_paths.add_model_folder_path("flux3_pe", str(Path(folder_paths.models_dir)
 class Flux3PELoader(io.ComfyNode):
     @classmethod
     def define_schema(cls):
-        names = [name for name in folder_paths.get_filename_list("flux3_pe") if name.endswith(".gguf") and not Path(name).name.startswith("mmproj-") and ".partial." not in name]
+        names = sorted({name.replace("\\", "/") for name in folder_paths.get_filename_list("flux3_pe")})
+        names = [name for name in names if name.endswith(".gguf") and not Path(name).name.startswith("mmproj-") and ".partial." not in name]
         names.sort(key=lambda name: ("Q4_K_M" not in name, name))
         return io.Schema(
             node_id="Flux3PELoader",
@@ -59,7 +60,7 @@ class Flux3PromptEnhance(io.ComfyNode):
             node_id="Flux3PromptEnhance",
             display_name="FLUX 3 Prompt Enhancement",
             category="FLUX3/Prompt Enhancement",
-            description="Expand a request with the official FLUX 3 PUP. Reference images select editing mode; boxes select layout mode. Output connects to a text encoder.",
+            description="Expand a request with FLUX 3 PUP or the supported Heretic checkpoint. Reference images select editing mode; boxes select layout mode. Output connects to a text encoder.",
             inputs=[
                 MODEL_TYPE.Input("pe_model"),
                 io.String.Input("prompt", multiline=True, dynamic_prompts=False, default="A man walking with his dog, afternoon sun"),

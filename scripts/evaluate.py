@@ -124,6 +124,8 @@ def gpu_sample():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--models", nargs="+", default=["Q4_K_M"])
+    parser.add_argument("--model-directory", type=Path, default=ROOT / "models/gguf")
+    parser.add_argument("--model-prefix", default="flux3-klein-pup")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--ids", nargs="+")
     parser.add_argument("--max-tokens", type=int, default=3584)
@@ -152,10 +154,11 @@ def main():
     for name, image in images.items():
         image.save(fixture_dir / f"{name}.png")
     records = []
-    report = {"source_revision": "8b069751eb5dcab23829d9c5eccb470eb8b8a4ed", "input_identity": evaluation_input_identity(), "recovery_enabled": not args.strict, "results": records}
+    report = {"input_identity": evaluation_input_identity(), "recovery_enabled": not args.strict, "results": records}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     for name in args.models:
-        spec = ModelSpec.load(ROOT / f"models/gguf/flux3-klein-pup-{name}.gguf", gpu_layers=args.gpu_layers, **({} if args.backend == "auto" else {"backend": args.backend}))
+        spec = ModelSpec.load(args.model_directory / f"{args.model_prefix}-{name}.gguf", gpu_layers=args.gpu_layers, **({} if args.backend == "auto" else {"backend": args.backend}))
+        report.update(source_model=spec.source_model, source_revision=spec.source_revision)
         for case in samples:
             memory, stopped = [], threading.Event()
 
@@ -194,7 +197,7 @@ def main():
         entries = [entry for entry in records if entry["model"] == name]
         passed = [entry for entry in entries if entry["passed"]]
         durations = [entry["metadata"]["generation_seconds"] for entry in passed]
-        report["summary"][name] = {"tasks": len(entries), "passed": len(passed), "median_generation_seconds": statistics.median(durations) if durations else None, "model_bytes": (ROOT / f"models/gguf/flux3-klein-pup-{name}.gguf").stat().st_size}
+        report["summary"][name] = {"tasks": len(entries), "passed": len(passed), "median_generation_seconds": statistics.median(durations) if durations else None, "model_bytes": (args.model_directory / f"{args.model_prefix}-{name}.gguf").stat().st_size}
     args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(report["summary"], indent=2))
     if any(not record["passed"] for record in records):

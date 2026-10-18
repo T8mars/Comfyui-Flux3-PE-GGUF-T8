@@ -17,6 +17,9 @@ from . import bbox
 
 SOURCE_MODEL = "black-forest-labs/flux-3-image-klein-pup"
 SOURCE_REVISION = "8b069751eb5dcab23829d9c5eccb470eb8b8a4ed"
+HERETIC_MODEL = "tuanlai/flux-3-image-klein-pup-heretic"
+HERETIC_REVISION = "80efba65e01bb2e320dea412fa657d701491b443"
+HERETIC_SOURCE_SHA256 = "beee7e8b4aa5e5ff1b9342d70b46022f9508aa6ae5010c76427ced6a0f0a8f50"
 MAX_REFERENCES = 10
 SYSTEM_PROMPTS = json.loads((Path(__file__).parent / "resources/system_prompts.json").read_text(encoding="utf-8"))
 I2I_SCAFFOLD = {

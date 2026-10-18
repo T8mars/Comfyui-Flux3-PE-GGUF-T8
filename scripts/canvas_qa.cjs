@@ -9,7 +9,11 @@ const evidence = process.env.FLUX3_PE_CANVAS_EVIDENCE || path.join(root, 'artifa
 fs.mkdirSync(evidence, { recursive: true });
 const mode = process.argv[2] || 'inspect';
 const baseURL = process.env.COMFY_URL || 'http://127.0.0.1:8267';
-const names = ['01_prompt_enhancement', '02_layout_enhancement', '03_pe_to_flux3', '04_reference_editing'];
+const names = process.env.FLUX3_PE_CANVAS_NAMES ? process.env.FLUX3_PE_CANVAS_NAMES.split(',') : ['01_prompt_enhancement', '02_layout_enhancement', '03_pe_to_flux3', '04_reference_editing'];
+assert.ok(names.every(name => /^[0-9]{2}_[a-z0-9_]+$/.test(name)), 'Invalid workflow name');
+const isText = name => name.endsWith('prompt_enhancement');
+const isEditing = name => name.endsWith('reference_editing');
+const isFull = name => name.endsWith('pe_to_flux3');
 const cleanPrompt = prompt => Object.fromEntries(Object.entries(prompt).map(([id, node]) => [id, { class_type: node.class_type, inputs: node.inputs }]));
 const version = fs.readFileSync(path.join(root, 'flux3_pe/__init__.py'), 'utf8').match(/__version__\s*=\s*"([^"]+)"/)[1];
 // Keep the runtime identity contract identical to flux3_pe/identity.py.
@@ -43,7 +47,7 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
     });
     if (mode === 'png-roundtrip') {
       const report = JSON.parse(fs.readFileSync(path.join(evidence, 'execute.json'), 'utf8'));
-      const generation = report.runs.find(item => item.name === '03_pe_to_flux3');
+      const generation = report.runs.find(item => isFull(item.name));
       const image = generation.history.outputs['19'].images[0];
       const bytes = fs.readFileSync(path.join(root, 'artifacts/comfy-output', image.subfolder, image.filename));
       await page.evaluate(async base64 => {
@@ -98,11 +102,12 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
           assert.equal(details.plugin_version, version, 'The ComfyUI backend is running a different plugin version');
           assert.equal(details.source_identity, sourceIdentity, 'The ComfyUI backend is running stale Python code');
           if (process.env.FLUX3_PE_EXPECT_BACKEND) assert.equal(details.backend, process.env.FLUX3_PE_EXPECT_BACKEND, 'The workflow used a different backend');
-          if (name.startsWith('04')) {
+          if (process.env.FLUX3_PE_EXPECT_SOURCE_MODEL) assert.equal(details.source_model, process.env.FLUX3_PE_EXPECT_SOURCE_MODEL, 'The workflow used a different model source');
+          if (isEditing(name)) {
             assert.equal(details.mode, 'i2i');
             assert.equal(details.reference_sizes.length, 2);
           }
-          if (name.startsWith('03')) {
+          if (isFull(name)) {
             const images = entry.outputs['19']?.images;
             assert.ok(images?.length, 'No image was produced');
             for (const item of images) {
@@ -137,7 +142,7 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
           if (!saved.length && !runs.length) continue;
           assert.equal(saved.length, 1, `Cannot resume incomplete canvas evidence for ${name}; use a fresh server and run without --resume`);
           if (mode === 'execute') {
-            const required = name.startsWith('01') ? 4 : 1;
+            const required = isText(name) ? 4 : 1;
             assert.deepEqual(runs.map(item => item.iteration), Array.from({ length: required }, (_, index) => index + 1), `Cannot resume partial canvas execution for ${name}; use a fresh server and run without --resume`);
           }
         }
@@ -147,7 +152,7 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
       try {
         assert.deepEqual(errors, [], 'Frontend JavaScript errors occurred during startup');
         for (const name of names) {
-          const requiredRuns = name.startsWith('01') ? 4 : 1;
+          const requiredRuns = isText(name) ? 4 : 1;
           if (process.argv.includes('--resume') && report.saved.some(item => item.name === name) && (mode !== 'execute' || report.runs.filter(item => item.name === name).length === requiredRuns)) continue;
           const workflow = JSON.parse(fs.readFileSync(path.join(root, 'examples', `${name}.json`), 'utf8'));
           const api = JSON.parse(fs.readFileSync(path.join(root, 'examples', `${name}.api.json`), 'utf8'));
@@ -191,7 +196,7 @@ const qaScriptHash = crypto.createHash('sha256').update(fs.readFileSync(__filena
           if (mode === 'execute') {
             const first = await run(name, 1);
             report.runs.push(first); persist();
-            if (name.startsWith('01')) {
+            if (isText(name)) {
               const second = await run(name, 2);
               assert.equal(second.details.cache_hit, true, 'Identical cached request did not hit the engine result cache');
               report.runs.push(second); persist();

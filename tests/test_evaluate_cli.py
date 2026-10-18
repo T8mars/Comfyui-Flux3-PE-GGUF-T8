@@ -67,7 +67,7 @@ def test_cpu_evaluation_completes_without_starting_gpu_sampling(evaluation, tmp_
     monkeypatch.setattr(evaluation, "cases", lambda: [{"id": "cpu", "prompt": "A ball", "images": [], "boxes": None}])
     monkeypatch.setattr(evaluation, "fixtures", lambda: {})
     monkeypatch.setattr(evaluation, "evaluation_input_identity", lambda: "fixture")
-    monkeypatch.setattr(evaluation.ModelSpec, "load", lambda *a, **k: object())
+    monkeypatch.setattr(evaluation.ModelSpec, "load", lambda *a, **k: SimpleNamespace(source_model="fixture/pup", source_revision="fixture-revision"))
     monkeypatch.setattr(evaluation, "release_model", lambda: None)
     monkeypatch.setattr(evaluation, "gpu_sample", lambda: calls.append("sample") or [100, 50])
     monkeypatch.setattr(threading, "excepthook", lambda event: errors.append(event.exc_value))
@@ -79,5 +79,6 @@ def test_cpu_evaluation_completes_without_starting_gpu_sampling(evaluation, tmp_
     evaluation.main()
     report = json.loads(output.read_text(encoding="utf-8"))
     assert report["summary"]["Q4_K_M"]["passed"] == 1
+    assert report["source_model"] == "fixture/pup" and report["source_revision"] == "fixture-revision"
     assert report["results"][0]["gpu_peak_mib_total"] is None
     assert calls == errors == []

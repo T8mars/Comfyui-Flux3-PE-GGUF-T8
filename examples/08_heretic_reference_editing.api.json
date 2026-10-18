@@ -1,0 +1,83 @@
+{
+  "1": {
+    "inputs": {
+      "model_name": "heretic/flux3-klein-pup-heretic-Q4_K_M.gguf",
+      "context_size": 8192,
+      "backend": "llama-cpp-python"
+    },
+    "class_type": "Flux3PELoader",
+    "_meta": {
+      "title": "FLUX 3 PE Model (GGUF)"
+    }
+  },
+  "2": {
+    "inputs": {
+      "prompt": "Place the blue ball from the first image on the lawn in the second image.",
+      "keep_loaded": false,
+      "use_cache": true,
+      "max_tokens": 3584,
+      "canvas_width": 0,
+      "canvas_height": 0,
+      "boxes_json": "",
+      "retry_invalid_output": true,
+      "pe_model": [
+        "1",
+        0
+      ],
+      "images.image_1": [
+        "10",
+        0
+      ],
+      "images.image_2": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "Flux3PromptEnhance",
+    "_meta": {
+      "title": "FLUX 3 Prompt Enhancement"
+    }
+  },
+  "3": {
+    "inputs": {
+      "source": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "增强后的提示词"
+    }
+  },
+  "4": {
+    "inputs": {
+      "source": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "PE 运行详情（缓存 / 恢复 / 耗时）"
+    }
+  },
+  "10": {
+    "inputs": {
+      "image": "FLUX3_PE_reference_objects.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "参考图 1：物体"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image": "FLUX3_PE_reference_scene.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "参考图 2：场景"
+    }
+  }
+}
